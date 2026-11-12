@@ -1,0 +1,23 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class Book extends Model
+{
+    protected $fillable = [
+        'title',
+        'author',
+        'publisher',
+        'isbn',
+        'category',
+        'cover_photo',
+        'file_path',
+        'physical_stock',
+    ];
+
+    protected $casts = [
+        'physical_stock' => 'integer',
+    ];
+}
