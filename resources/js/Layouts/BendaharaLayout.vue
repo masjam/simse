@@ -1,17 +1,24 @@
 <script setup>
 import { Link, usePage } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
+import NotificationBell from '@/Components/NotificationBell.vue';
 
 const page = usePage();
 const user = page.props.auth.user;
 const isSidebarOpen = ref(true);
+const activeModules = computed(() => page.props.activeModules || {});
+const isModuleActive = (code) => !code || activeModules.value[code] !== false;
 
 const menuItems = [
     { name: 'Dashboard Keuangan', route: 'bendahara.dashboard', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
-    { name: 'Kasir Pembayaran', route: 'bendahara.kasir', icon: 'M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z' },
-    { name: 'Manajemen SPP', route: 'bendahara.spp', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01' },
-    { name: 'Payroll & Gaji', route: 'bendahara.payroll', icon: 'M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z' },
+    { name: 'Kasir Pembayaran', route: 'bendahara.kasir', module: 'keuangan', icon: 'M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z' },
+    { name: 'Manajemen SPP', route: 'bendahara.spp', module: 'keuangan', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01' },
+    { name: 'Dompet Digital', route: 'bendahara.dompet', module: 'keuangan', icon: 'M3 6a2 2 0 012-2h14a2 2 0 012 2v2H3V6zm0 4h18v8a2 2 0 01-2 2H5a2 2 0 01-2-2v-8zm12 4a1 1 0 100 2h2a1 1 0 100-2h-2z' },
+    { name: 'Laporan Kantin', route: 'bendahara.kantin', module: 'kantin', icon: 'M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z' },
+    { name: 'Payroll & Gaji', route: 'bendahara.payroll', module: 'payroll', icon: 'M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z' },
 ];
+
+const filteredMenuItems = computed(() => menuItems.filter((item) => isModuleActive(item.module)));
 
 </script>
 
@@ -32,7 +39,7 @@ const menuItems = [
 
             <!-- Navigation -->
             <div class="flex-1 overflow-y-auto py-6 px-4 space-y-2 custom-scrollbar">
-                <Link v-for="item in menuItems" :key="item.name" :href="route(item.route)" 
+                <Link v-for="item in filteredMenuItems" :key="item.name" :href="route(item.route)" 
                       class="flex items-center gap-4 px-3 py-3 rounded-xl transition-all duration-200 group relative"
                       :class="route().current(item.route) ? 'bg-emerald-50 text-emerald-700' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'">
                     
@@ -78,10 +85,7 @@ const menuItems = [
                         Koneksi Bank Aktif
                     </div>
                     
-                    <button class="relative p-2 text-slate-400 hover:text-emerald-500 transition">
-                        <span class="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full"></span>
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
-                    </button>
+                    <NotificationBell />
                     
                     <Link :href="route('logout')" method="post" as="button" class="px-4 py-2 bg-white hover:bg-slate-800 hover:text-white text-slate-600 text-sm font-bold rounded-lg transition-all border border-slate-200 shadow-sm">
                         Keluar

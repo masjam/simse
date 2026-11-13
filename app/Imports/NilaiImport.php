@@ -5,13 +5,14 @@ namespace App\Imports;
 use App\Models\Grade;
 use App\Models\Student;
 use App\Models\Subject;
+use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\ToCollection;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
-use Illuminate\Support\Collection;
 
 class NilaiImport implements ToCollection, WithHeadingRow
 {
     protected $teacher_id;
+
     protected $subject_name;
 
     public function __construct($teacher_id, $subject_name)
@@ -23,7 +24,9 @@ class NilaiImport implements ToCollection, WithHeadingRow
     public function collection(Collection $rows)
     {
         $subject = Subject::where('name', $this->subject_name)->first();
-        if (!$subject) return;
+        if (! $subject) {
+            return;
+        }
 
         $fields = [
             't1' => ['type' => 'Tugas', 'name' => 'T1'],
@@ -37,10 +40,14 @@ class NilaiImport implements ToCollection, WithHeadingRow
         ];
 
         foreach ($rows as $row) {
-            if (!isset($row['nisn'])) continue;
+            if (! isset($row['nisn'])) {
+                continue;
+            }
 
             $student = Student::where('nisn', $row['nisn'])->first();
-            if (!$student) continue;
+            if (! $student) {
+                continue;
+            }
 
             foreach ($fields as $col => $meta) {
                 if (isset($row[$col]) && trim($row[$col]) !== '') {
@@ -53,7 +60,7 @@ class NilaiImport implements ToCollection, WithHeadingRow
                             'name' => $meta['name'],
                         ],
                         [
-                            'score' => $row[$col]
+                            'score' => $row[$col],
                         ]
                     );
                 }

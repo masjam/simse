@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use App\Models\TeachingSchedule;
 use App\Models\StudentClass;
+use App\Models\TeachingSchedule;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 class ScheduleController extends Controller
@@ -13,7 +13,7 @@ class ScheduleController extends Controller
     public function index(Request $request)
     {
         $class_id = $request->query('class_id');
-        
+
         $schedules = TeachingSchedule::with(['teacher.user', 'studentClass', 'subject'])
             ->when($class_id, function ($query, $class_id) {
                 return $query->where('student_class_id', $class_id);
@@ -70,7 +70,9 @@ class ScheduleController extends Controller
         foreach ($unassigned as $assignment) {
             $assigned = false;
             foreach ($days as $day) {
-                if ($assigned) break;
+                if ($assigned) {
+                    break;
+                }
                 foreach ($timeSlots as $slot) {
                     // Check if teacher is busy
                     $teacherBusy = TeachingSchedule::where('teacher_id', $assignment->teacher_id)
@@ -84,7 +86,7 @@ class ScheduleController extends Controller
                         ->where('time_start', $slot['start'])
                         ->exists();
 
-                    if (!$teacherBusy && !$classBusy) {
+                    if (! $teacherBusy && ! $classBusy) {
                         $assignment->update([
                             'day' => $day,
                             'time_start' => $slot['start'],
@@ -98,6 +100,6 @@ class ScheduleController extends Controller
             }
         }
 
-        return back()->with('success', $generatedCount . ' jadwal berhasil digenerate otomatis tanpa bentrok.');
+        return back()->with('success', $generatedCount.' jadwal berhasil digenerate otomatis tanpa bentrok.');
     }
 }

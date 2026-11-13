@@ -2,8 +2,8 @@
 
 namespace App\Imports;
 
-use App\Models\User;
 use App\Models\Student;
+use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Maatwebsite\Excel\Concerns\OnEachRow;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
@@ -14,7 +14,7 @@ class UsersImport implements OnEachRow, WithHeadingRow
     public function onRow(Row $row)
     {
         $rowIndex = $row->getIndex();
-        $row      = $row->toArray();
+        $row = $row->toArray();
 
         // Ensure essential fields exist
         if (empty($row['email']) || empty($row['name'])) {
@@ -31,7 +31,7 @@ class UsersImport implements OnEachRow, WithHeadingRow
         );
 
         // Assign Role
-        if (!empty($row['role'])) {
+        if (! empty($row['role'])) {
             $user->assignRole($row['role']);
         }
 

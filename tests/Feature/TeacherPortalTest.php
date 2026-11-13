@@ -6,6 +6,7 @@ use App\Models\AcademicYear;
 use App\Models\Assignment;
 use App\Models\Exam;
 use App\Models\Lesson;
+use App\Models\Role;
 use App\Models\Student;
 use App\Models\StudentClass;
 use App\Models\Subject;
@@ -15,7 +16,8 @@ use App\Models\User;
 use App\Models\ViolationPoint;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Spatie\Permission\Models\Role;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class TeacherPortalTest extends TestCase
@@ -81,7 +83,7 @@ class TeacherPortalTest extends TestCase
     public function test_guest_cannot_access_teacher_portal(): void
     {
         $response = $this->get(route('guru.dashboard'));
-        $response->assertRedirect(route('login'));
+        $response->assertRedirect(route('role.login', ['role' => 'guru']));
     }
 
     public function test_teacher_can_access_dashboard_and_pages(): void
@@ -313,5 +315,60 @@ class TeacherPortalTest extends TestCase
             'type' => 'Akademik',
             'status' => 'Selesai',
         ]);
+    }
+
+    public function test_lesson_attachment_is_stored_in_private_storage_and_protected(): void
+    {
+        Storage::fake('private');
+        Storage::fake('public');
+
+        $this->actingAs($this->teacherUser);
+
+        $file = UploadedFile::fake()->create('modul-tajwid.pdf', 256, 'application/pdf');
+
+        $response = $this->post(route('guru.lms.store'), [
+            'title' => 'Bab 2: Hukum Nun Sukun',
+            'subject_name' => $this->subject->name,
+            'class_name' => $this->class->name,
+            'content' => 'Pelajari modul terlampir.',
+            'attachment' => $file,
+            'order' => 2,
+        ]);
+
+        $response->assertSessionHas('success');
+
+        $lesson = Lesson::where('title', 'Bab 2: Hukum Nun Sukun')->first();
+        $this->assertNotNull($lesson);
+        $this->assertNotNull($lesson->attachment);
+        $this->assertStringStartsWith('materials/', $lesson->attachment);
+
+        Storage::disk('private')->assertExists($lesson->attachment);
+        Storage::disk('public')->assertMissing($lesson->attachment);
+
+        // Owner teacher can download private attachment
+        $downloadResponse = $this->get(route('guru.lms.attachment', $lesson));
+        $downloadResponse->assertOk();
+        $downloadResponse->assertDownload();
+
+        // Another teacher cannot download someone else's private lesson attachment
+        $otherTeacherUser = User::factory()->create();
+        $otherTeacherUser->assignRole('Guru Pengajar');
+        Teacher::create([
+            'user_id' => $otherTeacherUser->id,
+            'nip' => '199001012020011002',
+            'position' => 'Guru Mapel',
+        ]);
+
+        $this->actingAs($otherTeacherUser)
+            ->get(route('guru.lms.attachment', $lesson))
+            ->assertForbidden();
+
+        // Deleting lesson removes attachment from private disk
+        $attachmentPath = $lesson->attachment;
+        $this->actingAs($this->teacherUser)
+            ->delete(route('guru.lms.destroy', $lesson))
+            ->assertSessionHas('success');
+
+        Storage::disk('private')->assertMissing($attachmentPath);
     }
 }

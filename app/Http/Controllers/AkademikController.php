@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use Inertia\Inertia;
-use Illuminate\Http\Request;
 
 class AkademikController extends Controller
 {
@@ -22,7 +21,7 @@ class AkademikController extends Controller
             'className' => '11 RPL 1',
             'subjectName' => 'Pemrograman Web & Perangkat Bergerak',
             'scheduleTime' => '07:30 - 09:00',
-            'students' => $students
+            'students' => $students,
         ]);
     }
 }

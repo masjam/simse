@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use Inertia\Inertia;
-use Illuminate\Http\Request;
 
 class CBTController extends Controller
 {
@@ -20,7 +19,7 @@ class CBTController extends Controller
                 'max_violations' => 3,
                 'start_time' => now()->subMinutes(10)->toIso8601String(), // Sedang berlangsung
                 'end_time' => now()->addMinutes(80)->toIso8601String(),
-                'status' => 'Berlangsung'
+                'status' => 'Berlangsung',
             ],
             [
                 'id' => 2,
@@ -31,12 +30,12 @@ class CBTController extends Controller
                 'max_violations' => 5,
                 'start_time' => now()->addHours(2)->toIso8601String(), // Akan datang
                 'end_time' => now()->addHours(3)->toIso8601String(),
-                'status' => 'Akan Datang'
-            ]
+                'status' => 'Akan Datang',
+            ],
         ];
 
         return Inertia::render('CBT/Index', [
-            'exams' => $activeExams
+            'exams' => $activeExams,
         ]);
     }
 }

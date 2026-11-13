@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class TeachingSchedule extends Model
 {
+    use HasUuids;
+
     protected $fillable = [
         'teacher_id', 'subject_id', 'student_class_id', 'jpl',
         'day', 'time_start', 'time_end', 'room',

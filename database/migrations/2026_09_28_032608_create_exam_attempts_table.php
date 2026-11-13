@@ -9,9 +9,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('exam_attempts', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('exam_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('student_id')->constrained()->cascadeOnDelete();
+            $table->uuid('id')->primary();
+            $table->foreignUuid('exam_id')->constrained()->cascadeOnDelete();
+            $table->foreignUuid('student_id')->constrained()->cascadeOnDelete();
             $table->dateTime('started_at');
             $table->dateTime('finished_at')->nullable();
             $table->boolean('is_forced_submit')->default(false); // true jika batas pelanggaran tercapai atau waktu habis

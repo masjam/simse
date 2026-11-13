@@ -17,7 +17,7 @@ return new class extends Migration
             $table->string('pekerjaan_ayah')->nullable();
             $table->string('pekerjaan_ibu')->nullable();
             $table->string('no_telp_ortu')->nullable();
-            $table->foreignId('parent_user_id')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignUuid('parent_user_id')->nullable()->constrained('users')->nullOnDelete();
         });
     }
 
@@ -34,7 +34,7 @@ return new class extends Migration
                 'pekerjaan_ayah',
                 'pekerjaan_ibu',
                 'no_telp_ortu',
-                'parent_user_id'
+                'parent_user_id',
             ]);
         });
     }

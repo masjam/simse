@@ -7,6 +7,7 @@ namespace App\Models;
 namespace App\Http\Controllers;
 
 use App\Exports\NilaiExport;
+use App\Http\Requests\Teacher\StoreTeachingJournalRequest;
 use App\Imports\NilaiImport;
 use App\Models\Assignment;
 use App\Models\Attendance;
@@ -24,14 +25,19 @@ use App\Models\StudentViolation;
 use App\Models\Subject;
 use App\Models\Submission;
 use App\Models\Teacher;
+use App\Models\TeachingJournal;
 use App\Models\TeachingSchedule;
 use App\Models\ViolationPoint;
-use App\Models\WhatsappLog;
+use App\Notifications\SimseNotification;
+use App\Services\WhatsAppService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Maatwebsite\Excel\Facades\Excel;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class TeacherController extends Controller
 {
@@ -331,19 +337,30 @@ class TeacherController extends Controller
                     'name' => $student->user->name,
                     'status' => $status,
                     'parent_phone' => $student->no_telp_ortu ?? '081234567890',
+                    'parent' => $student->parent,
                 ];
             }
         }
 
-        // WhatsApp Notification Log for Absent Students
+        // Queue WhatsApp & In-App Notification for Absent Students
+        $whatsAppService = app(WhatsAppService::class);
         foreach ($absentStudents as $absent) {
-            WhatsappLog::create([
-                'recipient_name' => 'Wali Santri '.$absent['name'],
-                'phone_number' => $absent['parent_phone'],
-                'message' => "Assalamu'alaikum Wr. Wb. Pemberitahuan dari SD Muhammadiyah Al Mujahidin: Ananda {$absent['name']} tercatat {$absent['status']} pada tanggal {$date}.",
-                'status' => 'Terkirim',
-                'response_log' => json_encode(['simulated' => true, 'timestamp' => now()]),
-            ]);
+            $message = "Assalamu'alaikum Wr. Wb. Pemberitahuan dari SD Muhammadiyah Al Mujahidin: Ananda {$absent['name']} tercatat {$absent['status']} pada tanggal {$date}.";
+
+            $whatsAppService->queue(
+                phoneNumber: $absent['parent_phone'],
+                message: $message,
+                recipientName: 'Wali Santri '.$absent['name'],
+            );
+
+            if ($absent['parent']) {
+                $absent['parent']->notify(new SimseNotification(
+                    title: "Ketidakhadiran {$absent['name']}",
+                    message: $message,
+                    category: 'attendance',
+                    url: route('ortu.dashboard', ['tab' => 'presensi']),
+                ));
+            }
         }
 
         return redirect()->back()->with('success', 'Absensi kelas '.$validated['class_name'].' berhasil disimpan dan notifikasi telah dikirimkan!');
@@ -528,7 +545,14 @@ class TeacherController extends Controller
         $students = [];
 
         if ($studentClass) {
-            $studentModels = Student::with(['user', 'grades'])->where('student_class_id', $studentClass->id)->get();
+            $studentModels = Student::with([
+                'user',
+                'grades',
+                'achievements' => fn ($query) => $query
+                    ->where('status', 'Disetujui')
+                    ->orderByDesc('year')
+                    ->orderByDesc('created_at'),
+            ])->where('student_class_id', $studentClass->id)->get();
 
             $students = $studentModels->map(function ($s) {
                 $grades = $s->grades;
@@ -563,6 +587,15 @@ class TeacherController extends Controller
                     'nilaiAkhir' => $final,
                     'predikat' => $predikat,
                     'catatan' => $catatan,
+                    'achievements' => $s->achievements->map(fn ($achievement): array => [
+                        'id' => $achievement->id,
+                        'name' => $achievement->name,
+                        'category' => $achievement->category ?? 'Umum',
+                        'level' => $achievement->level,
+                        'year' => $achievement->year,
+                        'organizer' => $achievement->organizer ?? '-',
+                        'description' => $achievement->description,
+                    ])->values()->all(),
                 ];
             });
         }
@@ -601,6 +634,7 @@ class TeacherController extends Controller
                     'type' => $l->video_url ? 'video' : 'pdf',
                     'fileSize' => '2.4 MB',
                     'attachment' => $l->attachment,
+                    'attachmentUrl' => $l->attachment ? route('guru.lms.attachment', $l->id) : null,
                     'video_url' => $l->video_url,
                     'totalTopics' => $l->assignments->count(),
                     'completedTopics' => $l->assignments->count(),
@@ -638,13 +672,13 @@ class TeacherController extends Controller
 
         $attachmentPath = null;
         if ($request->hasFile('attachment')) {
-            $attachmentPath = $request->file('attachment')->store('materials', 'public');
+            $attachmentPath = $request->file('attachment')->store('materials', 'private');
         }
 
         Lesson::create([
             'teacher_id' => $teacher->id,
-            'subject_id' => $subject?->id ?? 1,
-            'student_class_id' => $studentClass?->id ?? 1,
+            'subject_id' => $subject?->id ?? Subject::value('id'),
+            'student_class_id' => $studentClass?->id ?? StudentClass::value('id'),
             'title' => $validated['title'],
             'content' => $validated['content'],
             'attachment' => $attachmentPath,
@@ -655,11 +689,35 @@ class TeacherController extends Controller
         return redirect()->back()->with('success', 'Materi ajar berhasil diterbitkan!');
     }
 
+    public function downloadLessonAttachment(Lesson $lesson): StreamedResponse
+    {
+        $teacher = $this->getTeacher();
+        if ($lesson->teacher_id !== $teacher?->id && ! Auth::user()?->hasRole('Super Admin')) {
+            abort(403);
+        }
+
+        if (! $lesson->attachment || ! Storage::disk('private')->exists($lesson->attachment)) {
+            abort(404);
+        }
+
+        return Storage::disk('private')->download($lesson->attachment);
+    }
+
     public function destroyLesson(Lesson $lesson)
     {
         $teacher = $this->getTeacher();
         if ($lesson->teacher_id !== $teacher?->id && ! Auth::user()?->hasRole('Super Admin')) {
             abort(403);
+        }
+
+        if ($lesson->attachment) {
+            if (Storage::disk('private')->exists($lesson->attachment)) {
+                Storage::disk('private')->delete($lesson->attachment);
+            }
+
+            if (Storage::disk('public')->exists($lesson->attachment)) {
+                Storage::disk('public')->delete($lesson->attachment);
+            }
         }
 
         $lesson->delete();
@@ -772,12 +830,12 @@ class TeacherController extends Controller
         ]);
 
         // Sync to Grade table
-        $subjectId = $submission->assignment?->lesson?->subject_id ?? 1;
+        $subjectId = $submission->assignment?->lesson?->subject_id ?? Subject::value('id');
         Grade::updateOrCreate(
             [
                 'student_id' => $submission->student_id,
                 'subject_id' => $subjectId,
-                'teacher_id' => $teacher?->id ?? 1,
+                'teacher_id' => $teacher?->id ?? Teacher::value('id'),
                 'type' => 'Tugas',
                 'name' => 'T1',
             ],
@@ -860,8 +918,8 @@ class TeacherController extends Controller
         $subject = Subject::where('name', $validated['subject_name'])->first();
 
         Exam::create([
-            'teacher_id' => $teacher?->id ?? 1,
-            'subject_id' => $subject?->id ?? 1,
+            'teacher_id' => $teacher?->id ?? Teacher::value('id'),
+            'subject_id' => $subject?->id ?? Subject::value('id'),
             'title' => $validated['title'],
             'description' => $validated['description'],
             'start_time' => $validated['start_time'],
@@ -1024,7 +1082,7 @@ class TeacherController extends Controller
 
         CounselingSession::create([
             'student_id' => $validated['student_id'],
-            'teacher_id' => $teacher?->id ?? 1,
+            'teacher_id' => $teacher?->id ?? Teacher::value('id'),
             'type' => $validated['type'],
             'date' => $validated['date'],
             'problem' => $validated['problem'],
@@ -1066,7 +1124,7 @@ class TeacherController extends Controller
     public function payroll()
     {
         $teacher = $this->getTeacher();
-        $teacherId = $teacher?->id ?? 1;
+        $teacherId = $teacher?->id ?? Teacher::value('id');
 
         $payrolls = Payroll::with('components')
             ->where('teacher_id', $teacherId)
@@ -1124,5 +1182,128 @@ class TeacherController extends Controller
             'slipGaji' => $slipGaji,
             'payrollHistory' => $payrollHistory,
         ]);
+    }
+
+    // 10. JURNAL MENGAJAR HARIAN & RINGKASAN MATERI MINGGUAN
+    public function jurnal(Request $request)
+    {
+        $teacher = $this->getTeacher();
+        $teacherId = $teacher?->id;
+
+        $selectedClassId = $request->query('class_id', '');
+        $selectedSubjectId = $request->query('subject_id', '');
+        $selectedWeek = $request->query('week', Carbon::now()->format('o-\WW'));
+
+        $query = TeachingJournal::with(['subject', 'studentClass', 'teachingSchedule'])
+            ->when($teacherId, fn ($q) => $q->where('teacher_id', $teacherId))
+            ->when($selectedClassId !== '', fn ($q) => $q->where('student_class_id', $selectedClassId))
+            ->when($selectedSubjectId !== '', fn ($q) => $q->where('subject_id', $selectedSubjectId));
+
+        if ($selectedWeek !== '' && preg_match('/^(\d{4})-W(\d{2})$/', $selectedWeek, $matches)) {
+            $weekStart = Carbon::now()->setISODate((int) $matches[1], (int) $matches[2])->startOfWeek();
+            $weekEnd = $weekStart->copy()->endOfWeek();
+            $query->whereBetween('date', [$weekStart->toDateString(), $weekEnd->toDateString()]);
+        }
+
+        $journals = $query->orderByDesc('date')
+            ->orderByDesc('created_at')
+            ->get()
+            ->map(function (TeachingJournal $journal): array {
+                return [
+                    'id' => $journal->id,
+                    'student_class_id' => $journal->student_class_id,
+                    'class_name' => $journal->studentClass?->name ?? '-',
+                    'subject_id' => $journal->subject_id,
+                    'subject_name' => $journal->subject?->name ?? '-',
+                    'teaching_schedule_id' => $journal->teaching_schedule_id,
+                    'date' => $journal->date?->format('Y-m-d') ?? '',
+                    'date_formatted' => $journal->date?->locale('id')->translatedFormat('l, d M Y') ?? '-',
+                    'week_key' => $journal->date?->format('o-\WW') ?? '',
+                    'meeting_number' => $journal->meeting_number,
+                    'topic' => $journal->topic,
+                    'summary' => $journal->summary,
+                    'activities' => $journal->activities,
+                    'notes' => $journal->notes,
+                ];
+            });
+
+        $classes = StudentClass::orderBy('name')->get(['id', 'name']);
+        $subjects = Subject::orderBy('name')->get(['id', 'name']);
+        $schedules = TeachingSchedule::with(['subject', 'studentClass'])
+            ->when($teacherId, fn ($q) => $q->where('teacher_id', $teacherId))
+            ->orderBy('day')
+            ->orderBy('time_start')
+            ->get()
+            ->map(fn (TeachingSchedule $s): array => [
+                'id' => $s->id,
+                'student_class_id' => $s->student_class_id,
+                'subject_id' => $s->subject_id,
+                'label' => ($s->day_name).' • '.substr((string) $s->time_start, 0, 5).' — '.($s->subject?->name ?? '-').' ('.($s->studentClass?->name ?? '-').')',
+            ]);
+
+        return Inertia::render('Teacher/Jurnal', [
+            'journals' => $journals,
+            'classes' => $classes,
+            'subjects' => $subjects,
+            'schedules' => $schedules,
+            'filters' => [
+                'class_id' => $selectedClassId,
+                'subject_id' => $selectedSubjectId,
+                'week' => $selectedWeek,
+            ],
+        ]);
+    }
+
+    public function storeJurnal(StoreTeachingJournalRequest $request)
+    {
+        $teacher = $this->getTeacher();
+        abort_if(! $teacher, 403, 'Profil guru tidak ditemukan.');
+
+        $validated = $request->validated();
+
+        TeachingJournal::create([
+            'teacher_id' => $teacher->id,
+            'student_class_id' => $validated['student_class_id'],
+            'subject_id' => $validated['subject_id'],
+            'teaching_schedule_id' => $validated['teaching_schedule_id'] ?? null,
+            'date' => $validated['date'],
+            'meeting_number' => $validated['meeting_number'] ?? 1,
+            'topic' => $validated['topic'],
+            'summary' => $validated['summary'],
+            'activities' => $validated['activities'] ?? null,
+            'notes' => $validated['notes'] ?? null,
+        ]);
+
+        return redirect()->back()->with('success', 'Jurnal mengajar berhasil disimpan dan ringkasannya tampil di Materi Mingguan siswa.');
+    }
+
+    public function updateJurnal(StoreTeachingJournalRequest $request, TeachingJournal $journal)
+    {
+        Gate::authorize('update', $journal);
+
+        $validated = $request->validated();
+
+        $journal->update([
+            'student_class_id' => $validated['student_class_id'],
+            'subject_id' => $validated['subject_id'],
+            'teaching_schedule_id' => $validated['teaching_schedule_id'] ?? null,
+            'date' => $validated['date'],
+            'meeting_number' => $validated['meeting_number'] ?? 1,
+            'topic' => $validated['topic'],
+            'summary' => $validated['summary'],
+            'activities' => $validated['activities'] ?? null,
+            'notes' => $validated['notes'] ?? null,
+        ]);
+
+        return redirect()->back()->with('success', 'Jurnal mengajar berhasil diperbarui.');
+    }
+
+    public function destroyJurnal(TeachingJournal $journal)
+    {
+        Gate::authorize('delete', $journal);
+
+        $journal->delete();
+
+        return redirect()->back()->with('success', 'Jurnal mengajar berhasil dihapus.');
     }
 }

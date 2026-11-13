@@ -9,8 +9,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('canteen_stands', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete(); // Pemilik Stand (Role Vendor)
+            $table->uuid('id')->primary();
+            $table->foreignUuid('user_id')->constrained()->cascadeOnDelete(); // Pemilik Stand (Role Vendor)
             $table->string('name');
             $table->text('description')->nullable();
             $table->decimal('balance', 15, 2)->default(0); // Saldo pendapatan kantin

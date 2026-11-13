@@ -30,7 +30,7 @@ class LoginRequest extends FormRequest
         return [
             'email' => ['required', 'string', 'email'],
             'password' => ['required', 'string'],
-            'selected_role' => ['nullable', 'string', 'in:guru,siswa,staf,admin'],
+            'selected_role' => ['nullable', 'string', 'in:guru,siswa,ortu,staf,bendahara,admin,bk,kantin,ppdb'],
         ];
     }
 

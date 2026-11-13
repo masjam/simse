@@ -9,8 +9,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('exam_violations', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('exam_attempt_id')->constrained()->cascadeOnDelete();
+            $table->uuid('id')->primary();
+            $table->foreignUuid('exam_attempt_id')->constrained()->cascadeOnDelete();
             $table->enum('type', ['Tab Switch', 'Keluar Layar Penuh', 'Koneksi Terputus', 'Buka Aplikasi Lain']);
             $table->timestamp('timestamp');
             $table->timestamps();

@@ -9,9 +9,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('counseling_sessions', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('student_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('teacher_id')->constrained()->cascadeOnDelete(); // Guru BK
+            $table->uuid('id')->primary();
+            $table->foreignUuid('student_id')->constrained()->cascadeOnDelete();
+            $table->foreignUuid('teacher_id')->constrained()->cascadeOnDelete(); // Guru BK
             $table->enum('type', ['Pribadi', 'Kelompok', 'Karir', 'Akademik']);
             $table->date('date');
             $table->text('problem');

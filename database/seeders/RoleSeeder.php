@@ -2,9 +2,8 @@
 
 namespace Database\Seeders;
 
+use App\Models\Role;
 use Illuminate\Database\Seeder;
-use Spatie\Permission\Models\Role;
-use Spatie\Permission\Models\Permission;
 
 class RoleSeeder extends Seeder
 {
@@ -21,7 +20,8 @@ class RoleSeeder extends Seeder
             'Siswa',
             'Orang Tua',
             'Calon Siswa Baru',
-            'Pengelola Stand Kantin'
+            'Pengelola Stand Kantin',
+            'Bidang Lomba',
         ];
 
         foreach ($roles as $role) {

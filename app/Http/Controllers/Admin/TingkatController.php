@@ -3,9 +3,8 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-
 use App\Models\Tingkat;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 class TingkatController extends Controller
@@ -13,8 +12,9 @@ class TingkatController extends Controller
     public function index()
     {
         $tingkats = Tingkat::latest()->paginate(10);
+
         return Inertia::render('Admin/Tingkat/Index', [
-            'tingkats' => $tingkats
+            'tingkats' => $tingkats,
         ]);
     }
 
@@ -32,9 +32,9 @@ class TingkatController extends Controller
     public function update(Request $request, string $id)
     {
         $tingkat = Tingkat::findOrFail($id);
-        
+
         $request->validate([
-            'name' => 'required|string|max:255|unique:tingkats,name,' . $id,
+            'name' => 'required|string|max:255|unique:tingkats,name,'.$id,
         ]);
 
         $tingkat->update($request->all());
@@ -45,6 +45,7 @@ class TingkatController extends Controller
     public function destroy(string $id)
     {
         Tingkat::findOrFail($id)->delete();
+
         return back()->with('success', 'Tingkat berhasil dihapus.');
     }
 }

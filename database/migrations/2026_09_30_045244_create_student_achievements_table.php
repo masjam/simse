@@ -9,8 +9,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('student_achievements', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('student_id')->constrained()->cascadeOnDelete();
+            $table->uuid('id')->primary();
+            $table->foreignUuid('student_id')->constrained()->cascadeOnDelete();
             $table->string('name');
             $table->string('level');
             $table->integer('year');

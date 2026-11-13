@@ -3,12 +3,11 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-
-use App\Models\StudentClass;
-use App\Models\Tingkat;
-use App\Models\Teacher;
 use App\Models\AcademicYear;
+use App\Models\StudentClass;
+use App\Models\Teacher;
+use App\Models\Tingkat;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 class StudentClassController extends Controller
@@ -16,7 +15,7 @@ class StudentClassController extends Controller
     public function index()
     {
         $rombels = StudentClass::with(['tingkat', 'academicYear', 'teacher.user'])->latest()->paginate(10);
-        
+
         return Inertia::render('Admin/StudentClass/Index', [
             'rombels' => $rombels,
             'tingkats' => Tingkat::all(),
@@ -43,7 +42,7 @@ class StudentClassController extends Controller
     public function update(Request $request, string $id)
     {
         $rombel = StudentClass::findOrFail($id);
-        
+
         $request->validate([
             'name' => 'required|string|max:255',
             'level' => 'required|string',
@@ -60,6 +59,7 @@ class StudentClassController extends Controller
     public function destroy(string $id)
     {
         StudentClass::findOrFail($id)->delete();
+
         return back()->with('success', 'Rombel berhasil dihapus.');
     }
 }

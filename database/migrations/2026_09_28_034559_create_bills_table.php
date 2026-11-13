@@ -9,9 +9,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('bills', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('bill_type_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('student_id')->constrained()->cascadeOnDelete();
+            $table->uuid('id')->primary();
+            $table->foreignUuid('bill_type_id')->constrained()->cascadeOnDelete();
+            $table->foreignUuid('student_id')->constrained()->cascadeOnDelete();
             $table->string('month')->nullable(); // e.g. September
             $table->string('year')->nullable(); // e.g. 2026
             $table->enum('status', ['Belum Lunas', 'Angsuran', 'Lunas'])->default('Belum Lunas');

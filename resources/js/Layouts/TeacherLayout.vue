@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue';
 import { Link, usePage } from '@inertiajs/vue3';
 import ApplicationLogo from '@/Components/ApplicationLogo.vue';
+import NotificationBell from '@/Components/NotificationBell.vue';
 
 const page = usePage();
 const sidebarOpen = ref(false);
@@ -17,6 +18,9 @@ const isActive = (routeName) => {
     try { return route().current(routeName) || route().current(routeName + '.*'); } catch { return false; }
 };
 
+const activeModules = computed(() => page.props.activeModules || {});
+const isModuleActive = (code) => !code || activeModules.value[code] !== false;
+
 const menuGroups = [
     {
         label: 'UTAMA',
@@ -28,7 +32,7 @@ const menuGroups = [
     {
         label: 'AKADEMIK',
         items: [
-            { name: 'Absensi Kelas', route: 'guru.absensi', icon: 'clipboard-check' },
+            { name: 'Absensi Kelas', route: 'guru.absensi', module: 'absensi', icon: 'clipboard-check' },
             { name: 'Input Nilai', route: 'guru.nilai', icon: 'chart-bar' },
             { name: 'e-Raport', route: 'guru.raport', icon: 'document-text' },
         ]
@@ -36,25 +40,36 @@ const menuGroups = [
     {
         label: 'PEMBELAJARAN',
         items: [
-            { name: 'Materi Ajar (LMS)', route: 'guru.lms', icon: 'book-open' },
-            { name: 'Tugas Siswa', route: 'guru.tugas', icon: 'pencil-alt' },
-            { name: 'Bank Soal & CBT', route: 'guru.cbt', icon: 'puzzle' },
+            { name: 'Materi Ajar (LMS)', route: 'guru.lms', module: 'lms', icon: 'book-open' },
+            { name: 'Jurnal Mengajar', route: 'guru.jurnal', module: 'lms', icon: 'document-text' },
+            { name: 'Tugas Siswa', route: 'guru.tugas', module: 'lms', icon: 'pencil-alt' },
+            { name: 'Bank Soal & CBT', route: 'guru.cbt', module: 'cbt', icon: 'puzzle' },
         ]
     },
     {
         label: 'LAYANAN',
         items: [
-            { name: 'Bimbingan Konseling', route: 'guru.bk', icon: 'heart' },
-            { name: 'Perpustakaan', route: 'guru.perpustakaan', icon: 'library' },
+            { name: 'Bimbingan Konseling', route: 'guru.bk', module: 'bk', icon: 'heart' },
+            { name: 'Verifikasi Prestasi', route: 'achievements.verification.index', icon: 'document-text' },
+            { name: 'Perpustakaan', route: 'guru.perpustakaan', module: 'perpustakaan', icon: 'library' },
         ]
     },
     {
         label: 'KEUANGAN',
         items: [
-            { name: 'Slip Gaji & Payroll', route: 'guru.payroll', icon: 'cash' },
+            { name: 'Slip Gaji & Payroll', route: 'guru.payroll', module: 'payroll', icon: 'cash' },
         ]
     },
 ];
+
+const filteredMenuGroups = computed(() =>
+    menuGroups
+        .map((group) => ({
+            ...group,
+            items: group.items.filter((item) => isModuleActive(item.module)),
+        }))
+        .filter((group) => group.items.length > 0)
+);
 
 const getIcon = (icon) => {
     const icons = {
@@ -108,7 +123,7 @@ const toggleSidebar = () => sidebarOpen.value = !sidebarOpen.value;
 
                 <!-- Navigation -->
                 <nav class="flex-1 overflow-y-auto py-4 px-3 space-y-6 sidebar-scroll">
-                    <div v-for="group in menuGroups" :key="group.label">
+                    <div v-for="group in filteredMenuGroups" :key="group.label">
                         <p v-if="!sidebarCollapsed" class="text-[10px] font-bold tracking-widest text-slate-500 uppercase mb-2 px-3">{{ group.label }}</p>
                         <div class="space-y-1">
                             <Link v-for="item in group.items" :key="item.route" :href="route(item.route)"
@@ -162,10 +177,7 @@ const toggleSidebar = () => sidebarOpen.value = !sidebarOpen.value;
                 </div>
                 <div class="flex items-center gap-3">
                     <!-- Notification Bell -->
-                    <button class="relative w-10 h-10 flex items-center justify-center text-slate-500 hover:bg-slate-100 rounded-xl transition">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
-                        <span class="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
-                    </button>
+                    <NotificationBell />
                     <!-- Date Badge -->
                     <div class="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-slate-100 rounded-lg text-xs font-medium text-slate-600">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>

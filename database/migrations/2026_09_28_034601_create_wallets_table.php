@@ -9,8 +9,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('wallets', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('student_id')->constrained()->cascadeOnDelete();
+            $table->uuid('id')->primary();
+            $table->foreignUuid('student_id')->constrained()->cascadeOnDelete();
             $table->decimal('balance', 15, 2)->default(0);
             $table->string('pin')->nullable(); // PIN 6 digit (hashed) untuk keamanan transaksi
             $table->timestamps();

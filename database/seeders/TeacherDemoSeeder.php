@@ -2,14 +2,15 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
-use App\Models\User;
-use App\Models\Teacher;
+use App\Models\AcademicYear;
+use App\Models\Major;
 use App\Models\Student;
-use App\Models\Subject;
 use App\Models\StudentClass;
+use App\Models\Subject;
+use App\Models\Teacher;
 use App\Models\TeachingSchedule;
-use Illuminate\Support\Facades\DB;
+use App\Models\User;
+use Illuminate\Database\Seeder;
 
 class TeacherDemoSeeder extends Seeder
 {
@@ -17,7 +18,9 @@ class TeacherDemoSeeder extends Seeder
     {
         // 1. Get the "Siti Guru" teacher user from UserRoleSeeder
         $teacherUser = User::where('email', 'guru@sekolah.com')->first();
-        if (!$teacherUser) return;
+        if (! $teacherUser) {
+            return;
+        }
 
         // 2. Create the Teacher record
         $teacher = Teacher::firstOrCreate(
@@ -26,22 +29,20 @@ class TeacherDemoSeeder extends Seeder
         );
 
         // 3. Create dummy Academic Year & Major just to satisfy constraints
-        $academicYearId = DB::table('academic_years')->insertGetId([
-            'name' => '2026/2027',
-            'semester' => 'Ganjil',
-            'is_active' => true,
-            'created_at' => now(), 'updated_at' => now()
-        ]);
-        
-        $majorId = DB::table('majors')->insertGetId([
-            'code' => 'RPL', 'name' => 'Rekayasa Perangkat Lunak',
-            'created_at' => now(), 'updated_at' => now()
-        ]);
+        $academicYearId = AcademicYear::firstOrCreate(
+            ['name' => '2026/2027', 'semester' => 'Ganjil'],
+            ['is_active' => true]
+        )->id;
+
+        Major::firstOrCreate(
+            ['code' => 'RPL'],
+            ['name' => 'Rekayasa Perangkat Lunak']
+        );
 
         // 4. Create a Student Class (e.g., 11 RPL 1)
         $studentClass = StudentClass::firstOrCreate(
             ['name' => '11 RPL 1'],
-            ['level' => '11', 'major_id' => $majorId, 'academic_year_id' => $academicYearId]
+            ['level' => '11', 'academic_year_id' => $academicYearId]
         );
 
         // 5. Create Students in that class
@@ -58,14 +59,16 @@ class TeacherDemoSeeder extends Seeder
                 ['email' => $sData['email']],
                 ['name' => $sData['name'], 'password' => bcrypt('password')]
             );
-            if (!$studentUser->hasRole('Siswa')) $studentUser->assignRole('Siswa');
+            if (! $studentUser->hasRole('Siswa')) {
+                $studentUser->assignRole('Siswa');
+            }
 
             Student::firstOrCreate(
                 ['nisn' => $sData['nisn']],
                 [
                     'user_id' => $studentUser->id,
                     'student_class_id' => $studentClass->id,
-                    'nik' => $sData['nik']
+                    'nik' => $sData['nik'],
                 ]
             );
         }
@@ -84,9 +87,9 @@ class TeacherDemoSeeder extends Seeder
             'day' => 1, // Senin
             'time_start' => '07:30:00',
             'time_end' => '09:00:00',
-            'room' => 'Lab Komputer 1'
+            'room' => 'Lab Komputer 1',
         ]);
-        
+
         TeachingSchedule::firstOrCreate([
             'teacher_id' => $teacher->id,
             'subject_id' => $subject->id,
@@ -94,7 +97,7 @@ class TeacherDemoSeeder extends Seeder
             'day' => 2, // Selasa
             'time_start' => '10:00:00',
             'time_end' => '12:00:00',
-            'room' => 'Lab Komputer 2'
+            'room' => 'Lab Komputer 2',
         ]);
     }
 }

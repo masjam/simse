@@ -5,6 +5,7 @@ namespace App\Exports;
 use App\Models\Grade;
 use App\Models\Student;
 use App\Models\Subject;
+use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
@@ -12,7 +13,9 @@ use Maatwebsite\Excel\Concerns\WithMapping;
 class NilaiExport implements FromCollection, WithHeadings, WithMapping
 {
     protected $class_name;
+
     protected $subject_name;
+
     protected $teacher_id;
 
     public function __construct($class_name, $subject_name, $teacher_id)
@@ -22,12 +25,14 @@ class NilaiExport implements FromCollection, WithHeadings, WithMapping
         $this->teacher_id = $teacher_id;
     }
 
-    public function collection(): \Illuminate\Support\Collection
+    public function collection(): Collection
     {
         $subject = Subject::where('name', $this->subject_name)->first();
-        if (!$subject) return collect([]);
+        if (! $subject) {
+            return collect([]);
+        }
 
-        $students = Student::whereHas('studentClass', function($q) {
+        $students = Student::whereHas('studentClass', function ($q) {
             $q->where('name', $this->class_name);
         })->get();
 
@@ -39,9 +44,10 @@ class NilaiExport implements FromCollection, WithHeadings, WithMapping
 
         return $students->map(function ($student) use ($grades) {
             $studentGrades = collect($grades->get($student->id, []));
-            
-            $getGrade = function($type, $name) use ($studentGrades) {
+
+            $getGrade = function ($type, $name) use ($studentGrades) {
                 $g = $studentGrades->where('type', $type)->where('name', $name)->first();
+
                 return $g ? $g->score : '';
             };
 

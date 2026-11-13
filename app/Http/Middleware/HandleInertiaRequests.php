@@ -2,7 +2,9 @@
 
 namespace App\Http\Middleware;
 
+use App\Services\ModuleService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
@@ -29,13 +31,46 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        $user = $request->user();
+        $notificationsSummary = [
+            'unread_count' => 0,
+            'recent' => [],
+        ];
+
+        if ($user && Schema::hasTable('notifications')) {
+            $notificationsSummary = [
+                'unread_count' => $user->unreadNotifications()->count(),
+                'recent' => $user->notifications()
+                    ->latest()
+                    ->take(6)
+                    ->get()
+                    ->map(fn ($notification): array => [
+                        'id' => $notification->id,
+                        'title' => $notification->data['title'] ?? 'Notifikasi',
+                        'message' => $notification->data['message'] ?? '',
+                        'category' => $notification->data['category'] ?? 'info',
+                        'url' => $notification->data['url'] ?? null,
+                        'read_at' => $notification->read_at?->toIso8601String(),
+                        'created_at_human' => $notification->created_at?->diffForHumans() ?? '-',
+                    ])
+                    ->values()
+                    ->all(),
+            ];
+        }
+
         return [
             ...parent::share($request),
             'auth' => [
-                'user' => $request->user() ? array_merge(
-                    $request->user()->toArray(),
-                    ['roles' => $request->user()->getRoleNames()]
+                'user' => $user ? array_merge(
+                    $user->toArray(),
+                    ['roles' => $user->getRoleNames()]
                 ) : null,
+            ],
+            'activeModules' => app(ModuleService::class)->activeMap(),
+            'notificationsSummary' => $notificationsSummary,
+            'flash' => [
+                'success' => fn () => $request->session()->get('success'),
+                'error' => fn () => $request->session()->get('error'),
             ],
         ];
     }

@@ -25,12 +25,14 @@ const filteredLessons = computed(() => {
 });
 
 const showUploadModal = ref(false);
+const attachmentInput = ref(null);
 const form = useForm({
     title: '',
     subject_name: subjects.value[0] || 'Pendidikan Agama Islam dan Budi Pekerti',
     class_name: classes.value[0] || '1 Brilliant',
     content: '',
     video_url: '',
+    attachment: null,
     order: 1,
 });
 
@@ -40,6 +42,9 @@ const submitLesson = () => {
         onSuccess: () => {
             showUploadModal.value = false;
             form.reset();
+            if (attachmentInput.value) {
+                attachmentInput.value.value = '';
+            }
         }
     });
 };
@@ -118,6 +123,9 @@ const typeIcons = {
                                     <span>📖 <strong>{{ m.subject }}</strong></span>
                                     <span>🏫 Kelas: <strong>{{ m.class }}</strong></span>
                                     <span>📅 {{ m.date }}</span>
+                                    <a v-if="m.attachmentUrl" :href="m.attachmentUrl" class="text-emerald-600 hover:underline font-semibold flex items-center gap-1">
+                                        📎 Unduh Lampiran
+                                    </a>
                                     <a v-if="m.video_url" :href="m.video_url" target="_blank" class="text-indigo-600 hover:underline font-semibold flex items-center gap-1">
                                         ▶️ Buka Video
                                     </a>
@@ -174,6 +182,12 @@ const typeIcons = {
                                 <label class="text-xs font-bold text-slate-700 block mb-1">Tautan Video Edukasi / YouTube (Opsional)</label>
                                 <input type="url" v-model="form.video_url" placeholder="https://www.youtube.com/watch?v=..."
                                        class="w-full text-xs px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500" />
+                            </div>
+                            <div>
+                                <label class="text-xs font-bold text-slate-700 block mb-1">Lampiran Berkas Materi (Opsional, Maks. 10 MB)</label>
+                                <input ref="attachmentInput" type="file" @input="form.attachment = $event.target.files[0] ?? null"
+                                       class="w-full text-xs px-3 py-2 border border-slate-200 rounded-lg file:mr-3 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100" />
+                                <p v-if="form.errors.attachment" class="text-[11px] text-rose-600 mt-1">{{ form.errors.attachment }}</p>
                             </div>
                             <div class="flex gap-2.5 pt-3">
                                 <button type="button" @click="showUploadModal = false" class="flex-1 py-2 text-xs font-bold text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition">

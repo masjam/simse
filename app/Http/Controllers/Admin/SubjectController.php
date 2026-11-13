@@ -3,9 +3,8 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-
 use App\Models\Subject;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 class SubjectController extends Controller
@@ -13,8 +12,9 @@ class SubjectController extends Controller
     public function index()
     {
         $subjects = Subject::latest()->paginate(15);
+
         return Inertia::render('Admin/Subject/Index', [
-            'subjects' => $subjects
+            'subjects' => $subjects,
         ]);
     }
 
@@ -33,9 +33,9 @@ class SubjectController extends Controller
     public function update(Request $request, string $id)
     {
         $subject = Subject::findOrFail($id);
-        
+
         $request->validate([
-            'code' => 'required|string|max:50|unique:subjects,code,' . $id,
+            'code' => 'required|string|max:50|unique:subjects,code,'.$id,
             'name' => 'required|string|max:255',
         ]);
 
@@ -47,6 +47,7 @@ class SubjectController extends Controller
     public function destroy(string $id)
     {
         Subject::findOrFail($id)->delete();
+
         return back()->with('success', 'Mata Pelajaran berhasil dihapus.');
     }
 }

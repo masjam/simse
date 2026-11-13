@@ -1,4 +1,5 @@
 <?php
+
 $files = glob('database/migrations/2026_09_30_045235_add_details_to_students_table.php');
 if ($files) {
     file_put_contents($files[0], '<?php

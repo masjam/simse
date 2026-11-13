@@ -23,7 +23,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('student_classes', function (Blueprint $table) {
-            $table->foreignId('major_id')->nullable()->constrained('majors');
+            $table->foreignUuid('major_id')->nullable()->constrained('majors');
         });
     }
 };

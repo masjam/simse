@@ -9,8 +9,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('canteen_menus', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('canteen_stand_id')->constrained()->cascadeOnDelete();
+            $table->uuid('id')->primary();
+            $table->foreignUuid('canteen_stand_id')->constrained()->cascadeOnDelete();
             $table->string('name');
             $table->decimal('price', 10, 2);
             $table->integer('stock')->default(0);

@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 
 class Book extends Model
 {
+    use HasUuids;
+
     protected $fillable = [
         'title',
         'author',
@@ -20,4 +23,9 @@ class Book extends Model
     protected $casts = [
         'physical_stock' => 'integer',
     ];
+
+    public function loans()
+    {
+        return $this->hasMany(BookLoan::class);
+    }
 }

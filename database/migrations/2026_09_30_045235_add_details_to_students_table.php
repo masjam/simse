@@ -28,14 +28,14 @@ return new class extends Migration
             $table->string('tempat_tinggal')->nullable();
             $table->string('moda_transportasi')->nullable();
             $table->integer('anak_ke')->nullable();
-            
+
             // Data Ayah
             $table->string('nik_ayah')->nullable();
             $table->string('tahun_lahir_ayah', 4)->nullable();
             $table->string('pendidikan_ayah')->nullable();
             $table->string('berkebutuhan_khusus_ayah')->nullable();
             $table->string('penghasilan_ayah')->nullable();
-            
+
             // Data Ibu
             $table->enum('status_hidup_ibu', ['Hidup', 'Wafat'])->nullable();
             $table->string('nik_ibu')->nullable();
@@ -43,7 +43,7 @@ return new class extends Migration
             $table->string('pendidikan_ibu')->nullable();
             $table->string('berkebutuhan_khusus_ibu')->nullable();
             $table->string('penghasilan_ibu')->nullable();
-            
+
             // Data Wali
             $table->boolean('mempunyai_wali')->default(false);
             $table->string('nama_wali')->nullable();
@@ -52,7 +52,7 @@ return new class extends Migration
             $table->string('pendidikan_wali')->nullable();
             $table->string('pekerjaan_wali')->nullable();
             $table->string('penghasilan_wali')->nullable();
-            
+
             // Kontak
             $table->string('no_telepon_rumah')->nullable();
             $table->string('no_hp')->nullable();
@@ -73,7 +73,7 @@ return new class extends Migration
                 'berkebutuhan_khusus_ibu', 'penghasilan_ibu',
                 'mempunyai_wali', 'nama_wali', 'nik_wali', 'tahun_lahir_wali', 'pendidikan_wali',
                 'pekerjaan_wali', 'penghasilan_wali',
-                'no_telepon_rumah', 'no_hp'
+                'no_telepon_rumah', 'no_hp',
             ]);
         });
     }

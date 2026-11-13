@@ -15,6 +15,10 @@ const props = defineProps({
         type: String,
         default: 'guru',
     },
+    otpSentPhone: {
+        type: String,
+        default: '',
+    },
 });
 
 // Definisi 4 Jalur Login Peran
@@ -42,11 +46,11 @@ const roles = [
     },
     {
         id: 'siswa',
-        title: 'Siswa & Wali Santri',
-        shortTitle: 'Siswa & Wali',
-        badge: 'Peserta Didik & Orang Tua',
-        portalName: 'Portal Siswa & Orang Tua',
-        desc: 'Pantau presensi harian, nilai e-Raport, mutaba\'ah tahfidz, dan saldo jajan e-Kantin.',
+        title: 'Siswa & Santri',
+        shortTitle: 'Siswa',
+        badge: 'Peserta Didik',
+        portalName: 'Portal Akademik Siswa',
+        desc: 'Pantau jadwal pelajaran, presensi harian, materi LMS, tugas, dan ujian CBT.',
         placeholder: 'nisn.siswa@sdmujahidin-wns.sch.id / NISN',
         accentBg: 'from-sky-600 via-blue-700 to-indigo-800',
         badgeBg: 'bg-sky-50 text-sky-700 border-sky-200',
@@ -56,30 +60,72 @@ const roles = [
         icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z',
         features: [
             'KTS Digital Ber-QR Code untuk Presensi & Perpus',
-            'Notifikasi Kehadiran Otomatis ke WhatsApp',
-            'Monitoring Saldo & Riwayat Jajan Sehat e-Kantin',
+            'Akses Materi Ajar Digital & Pengumpulan Tugas',
+            'Ujian Online CBT & Pemantauan Nilai Harian',
             'Capaian Mutaba\'ah Hafalan Tahfidz Qur\'an'
         ],
     },
     {
+        id: 'ortu',
+        title: 'Orang Tua / Wali',
+        shortTitle: 'Ortu',
+        badge: 'Wali Santri',
+        portalName: 'Portal Wali Santri',
+        desc: 'Pantau kehadiran anak, e-Raport, tagihan SPP, dan saldo jajan sehat e-Kantin.',
+        placeholder: 'wali.santri@sdmujahidin-wns.sch.id',
+        accentBg: 'from-cyan-600 via-teal-700 to-emerald-800',
+        badgeBg: 'bg-cyan-50 text-cyan-700 border-cyan-200',
+        btnBg: 'from-cyan-600 via-teal-600 to-emerald-600 hover:from-cyan-500 hover:to-teal-500 shadow-cyan-700/20',
+        focusRing: 'focus:border-cyan-600 focus:ring-cyan-500/10',
+        activeTab: 'bg-cyan-600 text-white shadow-md shadow-cyan-600/30',
+        icon: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z',
+        features: [
+            'Notifikasi Kehadiran Anak Otomatis ke WhatsApp',
+            'Monitoring Tagihan SPP & Riwayat Pembayaran',
+            'Pantau Saldo & Riwayat Jajan Sehat e-Kantin',
+            'Laporan Perkembangan Hafalan & e-Raport'
+        ],
+    },
+    {
         id: 'staf',
-        title: 'Staf & Keuangan',
-        shortTitle: 'Staf & TU',
-        badge: 'Tata Usaha & Bendahara',
-        portalName: 'Portal Keuangan & Administrasi',
-        desc: 'Pengelolaan tagihan SPP siswa, kasir kas sekolah, sirkulasi buku perpus, dan payroll staf.',
-        placeholder: 'keuangan@sdmujahidin-wns.sch.id',
+        title: 'Staf Sekolah',
+        shortTitle: 'Staf',
+        badge: 'Tata Usaha & Layanan',
+        portalName: 'Portal Staf & Tata Usaha',
+        desc: 'Layanan administrasi sekolah, sirkulasi perpustakaan, absensi, dan operasional kantin.',
+        placeholder: 'staf@sdmujahidin-wns.sch.id',
         accentBg: 'from-amber-600 via-orange-600 to-amber-700',
         badgeBg: 'bg-amber-50 text-amber-700 border-amber-200',
         btnBg: 'from-amber-600 via-orange-600 to-amber-600 hover:from-amber-500 hover:to-orange-500 shadow-amber-700/20',
         focusRing: 'focus:border-amber-600 focus:ring-amber-500/10',
         activeTab: 'bg-amber-600 text-white shadow-md shadow-amber-600/30',
+        icon: 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4',
+        features: [
+            'Layanan Sirkulasi Peminjaman Perpustakaan',
+            'Presensi Kehadiran Pegawai & Staf Harian',
+            'Administrasi Surat & Arsip Tata Usaha',
+            'Akses Rincian Slip Gaji & Payroll Bulanan'
+        ],
+    },
+    {
+        id: 'bendahara',
+        title: 'Bendahara',
+        shortTitle: 'Bendahara',
+        badge: 'Keuangan & Kas Sekolah',
+        portalName: 'Portal Keuangan & Bendahara',
+        desc: 'Pengelolaan tagihan SPP siswa, kasir kas sekolah, dan rekapitulasi payroll pegawai.',
+        placeholder: 'bendahara@sdmujahidin-wns.sch.id',
+        accentBg: 'from-rose-600 via-pink-700 to-rose-800',
+        badgeBg: 'bg-rose-50 text-rose-700 border-rose-200',
+        btnBg: 'from-rose-600 via-pink-600 to-rose-600 hover:from-rose-500 hover:to-pink-500 shadow-rose-700/20',
+        focusRing: 'focus:border-rose-600 focus:ring-rose-500/10',
+        activeTab: 'bg-rose-600 text-white shadow-md shadow-rose-600/30',
         icon: 'M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z',
         features: [
             'Pembukuan Tagihan SPP & Invoice Otomatis',
             'Point of Sales (POS) Kasir Kas Sekolah',
-            'Layanan Sirkulasi Peminjaman Perpustakaan',
-            'Kalkulasi Honor Jam Mengajar & Slip Gaji'
+            'Kalkulasi Honor Jam Mengajar & Slip Gaji',
+            'Laporan Neraca Keuangan Harian & Bulanan'
         ],
     },
     {
@@ -107,6 +153,8 @@ const roles = [
 
 const selectedRole = ref(props.initialRole || 'guru');
 const showPassword = ref(false);
+const parentAuthMode = ref('otp');
+const otpStepRequested = ref(Boolean(props.otpSentPhone));
 
 onMounted(() => {
     // Ambil parameter ?role= dari URL jika ada
@@ -117,9 +165,18 @@ onMounted(() => {
     }
 });
 
+const roleAlias = {
+    bk: 'guru',
+    kantin: 'staf',
+    ppdb: 'siswa',
+};
+
 const currentRoleData = computed(() => {
-    return roles.find(r => r.id === selectedRole.value) || roles[0];
+    const resolvedId = roleAlias[selectedRole.value] || selectedRole.value;
+    return roles.find(r => r.id === resolvedId) || roles[0];
 });
+
+const isParentOtpView = computed(() => selectedRole.value === 'ortu' && parentAuthMode.value === 'otp');
 
 const form = useForm({
     email: '',
@@ -128,17 +185,60 @@ const form = useForm({
     selected_role: selectedRole.value,
 });
 
+const otpRequestForm = useForm({
+    phone_number: props.otpSentPhone || '',
+    birth_date: '',
+});
+
+const otpVerifyForm = useForm({
+    phone_number: props.otpSentPhone || '',
+    otp_code: '',
+});
+
 const selectRole = (roleId) => {
     selectedRole.value = roleId;
     form.selected_role = roleId;
     form.clearErrors();
+    otpRequestForm.clearErrors();
+    otpVerifyForm.clearErrors();
+    if (route().has('role.login')) {
+        window.history.replaceState({}, '', route('role.login', { role: roleId }));
+    }
 };
 
 const submit = () => {
     form.selected_role = selectedRole.value;
-    form.post(route('login'), {
+    const postUrl = route().has('role.login.store')
+        ? route('role.login.store', { role: selectedRole.value })
+        : route('login');
+
+    form.post(postUrl, {
         onFinish: () => form.reset('password'),
     });
+};
+
+const submitOtpRequest = () => {
+    otpRequestForm.post(route('ortu.otp.request'), {
+        preserveScroll: true,
+        onSuccess: () => {
+            otpVerifyForm.phone_number = otpRequestForm.phone_number;
+            otpVerifyForm.clearErrors();
+            otpStepRequested.value = true;
+        },
+    });
+};
+
+const submitOtpVerify = () => {
+    otpVerifyForm.post(route('ortu.otp.verify'), {
+        preserveScroll: true,
+        onFinish: () => otpVerifyForm.reset('otp_code'),
+    });
+};
+
+const resetOtpStep = () => {
+    otpStepRequested.value = false;
+    otpVerifyForm.reset('otp_code');
+    otpVerifyForm.clearErrors();
 };
 </script>
 
@@ -185,14 +285,14 @@ const submit = () => {
         <main class="relative z-10 w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-6 my-auto">
             
             <!-- ROLE SELECTOR TABS (PIL JALUR LOGIN) -->
-            <div class="mb-4 bg-white/90 p-1.5 rounded-2xl border border-slate-200/90 shadow-md backdrop-blur-md flex items-center justify-between gap-1 max-w-2xl mx-auto">
+            <div class="mb-4 bg-white/90 p-1.5 rounded-2xl border border-slate-200/90 shadow-md backdrop-blur-md flex flex-wrap items-center justify-between gap-1 max-w-3xl mx-auto">
                 <button
                     v-for="role in roles"
                     :key="role.id"
                     type="button"
                     @click="selectRole(role.id)"
                     class="flex-1 py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 text-center"
-                    :class="selectedRole === role.id ? role.activeTab : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'"
+                    :class="currentRoleData.id === role.id ? role.activeTab : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'"
                 >
                     <svg class="w-3.5 h-3.5 shrink-0 hidden sm:inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="role.icon" />
@@ -291,8 +391,147 @@ const submit = () => {
                             <span>{{ status }}</span>
                         </div>
 
-                        <!-- LOGIN FORM -->
-                        <form @submit.prevent="submit" class="space-y-4">
+                        <!-- TOGGLE METODE LOGIN KHUSUS ORANG TUA -->
+                        <div
+                            v-if="selectedRole === 'ortu'"
+                            class="mb-5 p-1 rounded-xl bg-slate-100 border border-slate-200 grid grid-cols-2 gap-1"
+                        >
+                            <button
+                                type="button"
+                                @click="parentAuthMode = 'otp'"
+                                class="py-2 px-3 rounded-lg text-xs font-bold transition-all"
+                                :class="parentAuthMode === 'otp' ? 'bg-amber-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'"
+                            >
+                                OTP WhatsApp
+                            </button>
+                            <button
+                                type="button"
+                                @click="parentAuthMode = 'password'"
+                                class="py-2 px-3 rounded-lg text-xs font-bold transition-all"
+                                :class="parentAuthMode === 'password' ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'"
+                            >
+                                Email & Kata Sandi
+                            </button>
+                        </div>
+
+                        <!-- FORM OTP WHATSAPP ORANG TUA (TANPA PASSWORD) -->
+                        <div v-if="isParentOtpView" class="space-y-4">
+                            <form v-if="!otpStepRequested" @submit.prevent="submitOtpRequest" class="space-y-4">
+                                <div>
+                                    <label for="otp_phone_number" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                                        Nomor WhatsApp Orang Tua
+                                    </label>
+                                    <input
+                                        id="otp_phone_number"
+                                        type="tel"
+                                        v-model="otpRequestForm.phone_number"
+                                        required
+                                        placeholder="081234567890"
+                                        class="w-full px-4 py-3 rounded-xl bg-slate-50 border text-sm text-slate-900 placeholder-slate-400 transition-all focus:bg-white focus:outline-none"
+                                        :class="otpRequestForm.errors.phone_number
+                                            ? 'border-rose-400 focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10'
+                                            : ['border-slate-200 focus:ring-4', currentRoleData.focusRing]"
+                                    />
+                                    <p v-if="otpRequestForm.errors.phone_number" class="mt-1.5 text-xs text-rose-600 font-medium">
+                                        {{ otpRequestForm.errors.phone_number }}
+                                    </p>
+                                </div>
+
+                                <div>
+                                    <label for="otp_birth_date" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                                        Tanggal Lahir Anak
+                                    </label>
+                                    <input
+                                        id="otp_birth_date"
+                                        type="date"
+                                        v-model="otpRequestForm.birth_date"
+                                        required
+                                        class="w-full px-4 py-3 rounded-xl bg-slate-50 border text-sm text-slate-900 transition-all focus:bg-white focus:outline-none"
+                                        :class="otpRequestForm.errors.birth_date
+                                            ? 'border-rose-400 focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10'
+                                            : ['border-slate-200 focus:ring-4', currentRoleData.focusRing]"
+                                    />
+                                    <p v-if="otpRequestForm.errors.birth_date" class="mt-1.5 text-xs text-rose-600 font-medium">
+                                        {{ otpRequestForm.errors.birth_date }}
+                                    </p>
+                                    <p class="mt-1.5 text-[11px] text-slate-500">
+                                        Cocok dengan data salah satu putra/putri Anda di sekolah.
+                                    </p>
+                                </div>
+
+                                <div class="pt-2">
+                                    <button
+                                        type="submit"
+                                        :disabled="otpRequestForm.processing"
+                                        class="w-full py-3.5 px-6 rounded-xl font-bold text-sm text-white bg-gradient-to-r shadow-lg hover:scale-[1.01] active:scale-[0.99] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        :class="currentRoleData.btnBg"
+                                    >
+                                        <span>{{ otpRequestForm.processing ? 'Mengirim Kode OTP...' : 'Kirim Kode OTP ke WhatsApp' }}</span>
+                                    </button>
+                                </div>
+                            </form>
+
+                            <form v-else @submit.prevent="submitOtpVerify" class="space-y-4">
+                                <div class="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 flex items-center justify-between gap-2">
+                                    <div>
+                                        <p class="font-bold">OTP dikirim ke {{ otpVerifyForm.phone_number }}</p>
+                                        <p class="text-[11px] text-amber-700 mt-0.5">Berlaku selama 5 menit.</p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        @click="resetOtpStep"
+                                        class="text-xs font-bold text-amber-800 underline hover:text-amber-950 shrink-0"
+                                    >
+                                        Ubah Nomor
+                                    </button>
+                                </div>
+
+                                <div>
+                                    <label for="otp_code" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                                        Kode OTP 6 Digit
+                                    </label>
+                                    <input
+                                        id="otp_code"
+                                        type="text"
+                                        inputmode="numeric"
+                                        maxlength="6"
+                                        v-model="otpVerifyForm.otp_code"
+                                        required
+                                        autofocus
+                                        placeholder="Masukkan 6 digit kode"
+                                        class="w-full px-4 py-3 rounded-xl bg-slate-50 border text-center text-lg font-extrabold tracking-[0.35em] text-slate-900 placeholder:tracking-normal placeholder:text-sm placeholder:font-normal placeholder-slate-400 transition-all focus:bg-white focus:outline-none"
+                                        :class="otpVerifyForm.errors.otp_code
+                                            ? 'border-rose-400 focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10'
+                                            : ['border-slate-200 focus:ring-4', currentRoleData.focusRing]"
+                                    />
+                                    <p v-if="otpVerifyForm.errors.otp_code || otpVerifyForm.errors.phone_number" class="mt-1.5 text-xs text-rose-600 font-medium">
+                                        {{ otpVerifyForm.errors.otp_code || otpVerifyForm.errors.phone_number }}
+                                    </p>
+                                </div>
+
+                                <div class="pt-2 space-y-2.5">
+                                    <button
+                                        type="submit"
+                                        :disabled="otpVerifyForm.processing"
+                                        class="w-full py-3.5 px-6 rounded-xl font-bold text-sm text-white bg-gradient-to-r shadow-lg hover:scale-[1.01] active:scale-[0.99] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        :class="currentRoleData.btnBg"
+                                    >
+                                        <span>{{ otpVerifyForm.processing ? 'Memverifikasi OTP...' : 'Verifikasi & Masuk Portal' }}</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        @click="submitOtpRequest"
+                                        :disabled="otpRequestForm.processing || !otpRequestForm.birth_date"
+                                        class="w-full py-2.5 px-4 rounded-xl text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors disabled:opacity-50"
+                                    >
+                                        Kirim Ulang Kode OTP
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <!-- LOGIN FORM (EMAIL & PASSWORD) -->
+                        <form v-else @submit.prevent="submit" class="space-y-4">
                             
                             <!-- EMAIL INPUT -->
                             <div>

@@ -9,10 +9,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('teaching_schedules', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('teacher_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('subject_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('student_class_id')->constrained()->cascadeOnDelete();
+            $table->uuid('id')->primary();
+            $table->foreignUuid('teacher_id')->constrained()->cascadeOnDelete();
+            $table->foreignUuid('subject_id')->constrained()->cascadeOnDelete();
+            $table->foreignUuid('student_class_id')->constrained()->cascadeOnDelete();
             $table->tinyInteger('day'); // 1=Senin, 2=Selasa, ..., 6=Sabtu
             $table->time('time_start');
             $table->time('time_end');

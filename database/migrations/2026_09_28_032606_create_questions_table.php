@@ -9,8 +9,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('questions', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('exam_id')->constrained()->cascadeOnDelete();
+            $table->uuid('id')->primary();
+            $table->foreignUuid('exam_id')->constrained()->cascadeOnDelete();
             $table->enum('type', ['Pilihan Ganda', 'Ganda Kompleks', 'Benar Salah', 'Menjodohkan', 'Isian Rumpang', 'Esai']);
             $table->text('content'); // Soal ujian, bisa berupa HTML/Rich Text
             $table->integer('marks')->default(10); // Bobot nilai soal

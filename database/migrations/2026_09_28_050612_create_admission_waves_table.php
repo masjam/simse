@@ -9,7 +9,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('admission_waves', function (Blueprint $table) {
-            $table->id();
+            $table->uuid('id')->primary();
             $table->string('name'); // e.g. Gelombang 1
             $table->integer('quota');
             $table->date('start_date');

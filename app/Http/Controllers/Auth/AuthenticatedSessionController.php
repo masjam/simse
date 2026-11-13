@@ -16,34 +16,39 @@ class AuthenticatedSessionController extends Controller
     /**
      * Display the login view.
      */
-    public function create(Request $request): Response
+    public function create(Request $request, ?string $role = null): Response
     {
         return Inertia::render('Auth/Login', [
             'canResetPassword' => Route::has('password.request'),
             'status' => session('status'),
-            'initialRole' => $request->query('role', 'guru'),
+            'initialRole' => $role ?? $request->query('role', 'guru'),
         ]);
     }
 
     /**
      * Handle an incoming authentication request.
      */
-    public function store(LoginRequest $request): RedirectResponse
+    public function store(LoginRequest $request, ?string $role = null): RedirectResponse
     {
         $request->authenticate();
 
         $request->session()->regenerate();
 
         $user = Auth::user();
-        $selectedRole = $request->input('selected_role');
+        $selectedRole = $role ?? $request->input('selected_role');
 
         // Validasi kesesuaian jika user memilih jalur login tertentu
         if ($selectedRole) {
             $isAuthorized = match ($selectedRole) {
                 'admin' => $user->hasAnyRole(['Super Admin', 'Operator', 'Admin Tata Usaha']),
                 'guru' => $user->hasAnyRole(['Guru Pengajar', 'Guru BK', 'Super Admin']),
+                'bk' => $user->hasAnyRole(['Guru BK', 'Super Admin']),
                 'staf' => $user->hasAnyRole(['Bendahara', 'Staf Sekolah', 'Admin Tata Usaha', 'Pengelola Stand Kantin', 'Super Admin']),
-                'siswa' => $user->hasAnyRole(['Siswa', 'Orang Tua', 'Calon Siswa Baru', 'Super Admin']),
+                'bendahara' => $user->hasAnyRole(['Bendahara', 'Super Admin']),
+                'kantin' => $user->hasAnyRole(['Pengelola Stand Kantin', 'Super Admin']),
+                'siswa' => $user->hasAnyRole(['Siswa', 'Calon Siswa Baru', 'Super Admin']),
+                'ortu' => $user->hasAnyRole(['Orang Tua', 'Super Admin']),
+                'ppdb' => $user->hasAnyRole(['Calon Siswa Baru', 'Super Admin']),
                 default => true,
             };
 
@@ -55,8 +60,13 @@ class AuthenticatedSessionController extends Controller
                 $roleLabel = match ($selectedRole) {
                     'admin' => 'Administrator',
                     'guru' => 'Guru & Pendidik',
+                    'bk' => 'Guru BK',
                     'staf' => 'Staf & Keuangan',
-                    'siswa' => 'Siswa & Wali Murid',
+                    'bendahara' => 'Bendahara',
+                    'kantin' => 'Pengelola Stand Kantin',
+                    'siswa' => 'Siswa',
+                    'ortu' => 'Orang Tua / Wali Murid',
+                    'ppdb' => 'Calon Siswa Baru (PPDB)',
                     default => 'ini',
                 };
 
@@ -68,12 +78,18 @@ class AuthenticatedSessionController extends Controller
 
         if ($user->hasRole('Super Admin')) {
             return redirect()->intended(route('admin.dashboard', absolute: false));
-        } elseif ($user->hasRole('Guru Pengajar')) {
+        } elseif ($user->hasAnyRole(['Guru Pengajar', 'Guru BK'])) {
             return redirect()->intended(route('guru.dashboard', absolute: false));
         } elseif ($user->hasRole('Bendahara')) {
             return redirect()->intended(route('bendahara.dashboard', absolute: false));
+        } elseif ($user->hasRole('Pengelola Stand Kantin')) {
+            return redirect()->intended(route('kantin.dashboard', absolute: false));
         } elseif ($user->hasRole('Staf Sekolah')) {
             return redirect()->intended(route('staf.dashboard', absolute: false));
+        } elseif ($user->hasRole('Siswa')) {
+            return redirect()->intended(route('siswa.dashboard', absolute: false));
+        } elseif ($user->hasRole('Orang Tua')) {
+            return redirect()->intended(route('ortu.dashboard', absolute: false));
         }
 
         return redirect()->intended(route('dashboard', absolute: false));

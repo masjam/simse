@@ -185,6 +185,43 @@ const printDoc = () => {
                                 </tbody>
                             </table>
 
+                            <!-- Catatan Prestasi Siswa -->
+                            <div class="space-y-2">
+                                <h4 class="font-bold text-xs uppercase tracking-wider text-slate-700">
+                                    Catatan Prestasi &amp; Penghargaan Siswa
+                                </h4>
+                                <table class="w-full border-collapse border border-slate-300 text-left">
+                                    <thead class="bg-slate-100 text-slate-700">
+                                        <tr>
+                                            <th class="border border-slate-300 p-2 text-center w-10">No</th>
+                                            <th class="border border-slate-300 p-2">Nama Prestasi / Lomba</th>
+                                            <th class="border border-slate-300 p-2 text-center">Kategori</th>
+                                            <th class="border border-slate-300 p-2 text-center">Tingkat</th>
+                                            <th class="border border-slate-300 p-2 text-center w-16">Tahun</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr v-if="!activeStudent.achievements || activeStudent.achievements.length === 0">
+                                            <td colspan="5" class="border border-slate-300 p-2.5 text-center text-slate-500 italic">
+                                                Belum ada catatan prestasi terverifikasi pada semester ini.
+                                            </td>
+                                        </tr>
+                                        <tr v-for="(ach, idx) in activeStudent.achievements" :key="ach.id">
+                                            <td class="border border-slate-300 p-2 text-center">{{ idx + 1 }}</td>
+                                            <td class="border border-slate-300 p-2 font-semibold">
+                                                {{ ach.name }}
+                                                <span v-if="ach.organizer && ach.organizer !== '-'" class="block text-[10px] font-normal text-slate-500">
+                                                    Penyelenggara: {{ ach.organizer }}
+                                                </span>
+                                            </td>
+                                            <td class="border border-slate-300 p-2 text-center">{{ ach.category }}</td>
+                                            <td class="border border-slate-300 p-2 text-center">{{ ach.level }}</td>
+                                            <td class="border border-slate-300 p-2 text-center">{{ ach.year }}</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
                             <!-- Signatures -->
                             <div class="grid grid-cols-3 gap-4 pt-12 text-center text-xs">
                                 <div>

@@ -23,6 +23,10 @@ const props = defineProps({
         type: Array,
         default: () => [],
     },
+    latestNews: {
+        type: Array,
+        default: () => [],
+    },
 });
 
 const mobileMenuOpen = ref(false);
@@ -134,7 +138,7 @@ const facilities = [
 ];
 
 // Berita Terkini Nyata SD Muhammadiyah Al Mujahidin
-const newsList = [
+const defaultNewsList = [
     {
         id: 1,
         title: 'Program "Belia Mendunia": Siswa SD Muhammadiyah Al Mujahidin Resmi Dilepas Pemkab ke Singapura & Malaysia',
@@ -211,6 +215,12 @@ const displayInstagramPosts = computed(() => {
     return (props.instagramPosts && props.instagramPosts.length > 0)
         ? props.instagramPosts
         : defaultInstagramPosts;
+});
+
+const displayNews = computed(() => {
+    return (props.latestNews && props.latestNews.length > 0)
+        ? props.latestNews
+        : defaultNewsList;
 });
 </script>
 
@@ -295,8 +305,7 @@ const displayInstagramPosts = computed(() => {
                                 <span>Portal SIMSE</span>
                             </Link>
                             <Link 
-                                v-if="canRegister" 
-                                :href="route('register')" 
+                                :href="route('ppdb.form')" 
                                 class="inline-flex items-center gap-2 text-sm font-semibold text-slate-950 px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-400 via-amber-300 to-yellow-400 hover:from-amber-300 hover:to-yellow-300 shadow-lg shadow-amber-500/25 transition-all hover:scale-105 active:scale-95 font-bold"
                             >
                                 <span>Daftar Inden / PPDB</span>
@@ -341,7 +350,7 @@ const displayInstagramPosts = computed(() => {
                         <Link v-if="canLogin" :href="route('login')" class="text-center w-full py-2.5 rounded-xl bg-slate-900 text-slate-200 font-semibold border border-slate-700">
                             Masuk Portal SIMSE
                         </Link>
-                        <Link v-if="canRegister" :href="route('register')" class="text-center w-full py-3 rounded-xl bg-amber-400 text-slate-950 font-bold shadow-md">
+                        <Link :href="route('ppdb.form')" class="text-center w-full py-3 rounded-xl bg-amber-400 text-slate-950 font-bold shadow-md">
                             Daftar Inden / PPDB Online
                         </Link>
                     </template>
@@ -749,7 +758,7 @@ const displayInstagramPosts = computed(() => {
 
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
                     <article 
-                        v-for="item in newsList" 
+                        v-for="item in displayNews" 
                         :key="item.id"
                         class="rounded-3xl bg-slate-900/70 border border-slate-800 overflow-hidden hover:border-slate-700 hover:bg-slate-900 transition-all duration-300 group flex flex-col justify-between"
                     >
@@ -912,8 +921,7 @@ const displayInstagramPosts = computed(() => {
                     </Link>
 
                     <Link 
-                        v-if="canRegister" 
-                        :href="route('register')" 
+                        :href="route('ppdb.form')" 
                         class="w-full sm:w-auto px-8 py-3.5 rounded-2xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-sm shadow-lg shadow-amber-500/25 transition-all flex items-center justify-center gap-2"
                     >
                         <span>Pendaftaran Inden / PPDB</span>

@@ -2,12 +2,15 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class StudentClass extends Model
 {
+    use HasUuids;
+
     protected $fillable = ['tingkat_id', 'academic_year_id', 'level', 'name', 'teacher_id'];
 
     public function tingkat(): BelongsTo
@@ -33,5 +36,10 @@ class StudentClass extends Model
     public function teachingSchedules(): HasMany
     {
         return $this->hasMany(TeachingSchedule::class);
+    }
+
+    public function teachingJournals(): HasMany
+    {
+        return $this->hasMany(TeachingJournal::class);
     }
 }

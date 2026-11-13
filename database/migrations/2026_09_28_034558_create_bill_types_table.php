@@ -9,7 +9,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('bill_types', function (Blueprint $table) {
-            $table->id();
+            $table->uuid('id')->primary();
             $table->string('name'); // e.g. SPP Bulanan, Uang Gedung
             $table->decimal('amount', 12, 2);
             $table->enum('period', ['Bulanan', 'Tahunan', 'Sekali Bayar']);

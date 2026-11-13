@@ -40,4 +40,16 @@ return [
         'cache_lifetime' => (int) env('INSTAGRAM_CACHE_LIFETIME', 21600), // 6 jam
     ],
 
+    'whatsapp' => [
+        'driver' => env('WHATSAPP_DRIVER', 'log'),
+        'fonnte' => [
+            'token' => env('FONNTE_TOKEN'),
+            'endpoint' => env('FONNTE_ENDPOINT', 'https://api.fonnte.com/send'),
+        ],
+        'wablas' => [
+            'token' => env('WABLAS_TOKEN'),
+            'endpoint' => env('WABLAS_ENDPOINT', 'https://solo.wablas.com/api/send-message'),
+        ],
+    ],
+
 ];

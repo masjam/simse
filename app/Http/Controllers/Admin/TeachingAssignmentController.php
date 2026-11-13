@@ -3,11 +3,11 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use App\Models\TeachingSchedule;
-use App\Models\Teacher;
 use App\Models\StudentClass;
 use App\Models\Subject;
+use App\Models\Teacher;
+use App\Models\TeachingSchedule;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 class TeachingAssignmentController extends Controller
@@ -52,17 +52,18 @@ class TeachingAssignmentController extends Controller
                     'teacher_id' => $request->teacher_id,
                     'subject_id' => $request->subject_id,
                     'student_class_id' => $class_id,
-                    'jpl' => $request->jpl
+                    'jpl' => $request->jpl,
                 ]);
                 $addedCount++;
             }
         }
 
         if ($addedCount > 0) {
-            $msg = $addedCount . ' tugas mengajar berhasil ditambahkan.';
+            $msg = $addedCount.' tugas mengajar berhasil ditambahkan.';
             if ($existCount > 0) {
-                $msg .= ' (' . $existCount . ' dilewati karena sudah ada)';
+                $msg .= ' ('.$existCount.' dilewati karena sudah ada)';
             }
+
             return back()->with('success', $msg);
         }
 
@@ -95,7 +96,7 @@ class TeachingAssignmentController extends Controller
             'teacher_id' => $request->teacher_id,
             'subject_id' => $request->subject_id,
             'student_class_id' => $request->student_class_id,
-            'jpl' => $request->jpl
+            'jpl' => $request->jpl,
         ]);
 
         return back()->with('success', 'Tugas mengajar berhasil diperbarui.');
@@ -104,6 +105,7 @@ class TeachingAssignmentController extends Controller
     public function destroy($id)
     {
         TeachingSchedule::findOrFail($id)->delete();
+
         return back()->with('success', 'Tugas mengajar berhasil dihapus.');
     }
 }

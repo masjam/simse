@@ -2,11 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\UsersExport;
+use App\Imports\UsersImport;
+use App\Models\Student;
+use App\Models\Teacher;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
-use App\Models\User;
-use App\Models\Teacher;
-use App\Models\Student;
+use Maatwebsite\Excel\Facades\Excel;
 
 class AdminController extends Controller
 {
@@ -17,17 +20,17 @@ class AdminController extends Controller
                 'users_count' => User::count(),
                 'teachers_count' => Teacher::count(),
                 'students_count' => Student::count(),
-            ]
+            ],
         ]);
     }
 
     public function teachers(Request $request)
     {
         $search = $request->query('search', '');
-        
-        $query = User::with(['roles'])->when($search, function($q) use ($search) {
+
+        $query = User::with(['roles'])->when($search, function ($q) use ($search) {
             $q->where('name', 'like', "%{$search}%")->orWhere('email', 'like', "%{$search}%");
-        })->whereHas('roles', function($q) {
+        })->whereHas('roles', function ($q) {
             $q->whereIn('name', ['Guru Pengajar', 'Guru BK']);
         });
 
@@ -42,10 +45,10 @@ class AdminController extends Controller
     public function staffs(Request $request)
     {
         $search = $request->query('search', '');
-        
-        $query = User::with(['roles'])->when($search, function($q) use ($search) {
+
+        $query = User::with(['roles'])->when($search, function ($q) use ($search) {
             $q->where('name', 'like', "%{$search}%")->orWhere('email', 'like', "%{$search}%");
-        })->whereHas('roles', function($q) {
+        })->whereHas('roles', function ($q) {
             $q->whereNotIn('name', ['Siswa', 'Orang Tua Siswa', 'Guru Pengajar', 'Guru BK']);
         });
 
@@ -59,31 +62,17 @@ class AdminController extends Controller
 
     public function settings()
     {
-        return Inertia::render('Admin/Settings');
+        return redirect()->route('sistem.pengaturan');
     }
 
     public function modules()
     {
-        $modules = [
-            ['id' => 1, 'name' => 'SIAKAD & Akademik', 'description' => 'Sistem Informasi Akademik, Jadwal, dan Raport', 'icon' => 'akademik', 'status' => true],
-            ['id' => 2, 'name' => 'E-Learning (LMS)', 'description' => 'Materi Belajar, Tugas Online, dan Kuis', 'icon' => 'lms', 'status' => true],
-            ['id' => 3, 'name' => 'Ujian Online (CBT)', 'description' => 'Ujian dengan Pengawasan Anti-Kecurangan', 'icon' => 'cbt', 'status' => true],
-            ['id' => 4, 'name' => 'Bimbingan Konseling', 'description' => 'Pencatatan Poin Pelanggaran dan SP', 'icon' => 'bk', 'status' => true],
-            ['id' => 5, 'name' => 'Absensi Digital', 'description' => 'Absensi QR Code dan Face ID', 'icon' => 'absensi', 'status' => true],
-            ['id' => 6, 'name' => 'Keuangan & SPP', 'description' => 'Tagihan SPP dan Kasir Pembayaran', 'icon' => 'keuangan', 'status' => true],
-            ['id' => 7, 'name' => 'E-Kantin Digital', 'description' => 'Dompet Digital dan Stand Kantin', 'icon' => 'kantin', 'status' => false],
-            ['id' => 8, 'name' => 'Payroll Pegawai', 'description' => 'Penggajian, Slip Gaji, dan Kasbon', 'icon' => 'payroll', 'status' => false],
-            ['id' => 9, 'name' => 'PPDB Online', 'description' => 'Penerimaan Siswa Baru', 'icon' => 'ppdb', 'status' => false],
-            ['id' => 10, 'name' => 'Perpustakaan Digital', 'description' => 'Katalog Buku dan Peminjaman', 'icon' => 'perpustakaan', 'status' => false],
-        ];
-
-        return Inertia::render('Admin/Modules', [
-            'modules' => $modules
-        ]);
+        return redirect()->route('sistem.pengaturan');
     }
+
     public function exportUsers(Request $request)
     {
-        return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\UsersExport, 'users.xlsx');
+        return Excel::download(new UsersExport, 'users.xlsx');
     }
 
     public function importUsers(Request $request)
@@ -92,7 +81,7 @@ class AdminController extends Controller
             'file' => 'required|mimes:xlsx,xls,csv|max:10240',
         ]);
 
-        \Maatwebsite\Excel\Facades\Excel::import(new \App\Imports\UsersImport, $request->file('file'));
+        Excel::import(new UsersImport, $request->file('file'));
 
         return back()->with('success', 'Data pengguna berhasil diimpor.');
     }
@@ -100,7 +89,7 @@ class AdminController extends Controller
     public function downloadTemplate(Request $request)
     {
         $tab = $request->query('tab', 'pegawai');
-        
+
         return response()->streamDownload(function () use ($tab) {
             if ($tab === 'ortu') {
                 echo "name,email,password,role,id_siswa\nBudi (Ortu Andi),budi@example.com,password123,Orang Tua Siswa,1";

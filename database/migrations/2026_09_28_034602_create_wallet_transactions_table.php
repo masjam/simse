@@ -9,8 +9,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('wallet_transactions', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('wallet_id')->constrained()->cascadeOnDelete();
+            $table->uuid('id')->primary();
+            $table->foreignUuid('wallet_id')->constrained()->cascadeOnDelete();
             $table->enum('type', ['Setoran', 'Penarikan', 'Pembayaran Kantin', 'Pembayaran SPP']);
             $table->decimal('amount', 12, 2);
             $table->string('reference_id')->nullable(); // Referensi struk pembayaran kantin / SPP

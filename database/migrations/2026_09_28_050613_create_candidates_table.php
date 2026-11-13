@@ -9,8 +9,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('candidates', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('admission_wave_id')->constrained()->cascadeOnDelete();
+            $table->uuid('id')->primary();
+            $table->foreignUuid('admission_wave_id')->constrained()->cascadeOnDelete();
             $table->string('name');
             $table->string('nisn')->unique()->nullable();
             $table->string('prev_school')->nullable();

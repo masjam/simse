@@ -5,6 +5,7 @@ use App\Http\Controllers\Auth\ConfirmablePasswordController;
 use App\Http\Controllers\Auth\EmailVerificationNotificationController;
 use App\Http\Controllers\Auth\EmailVerificationPromptController;
 use App\Http\Controllers\Auth\NewPasswordController;
+use App\Http\Controllers\Auth\ParentOtpController;
 use App\Http\Controllers\Auth\PasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
@@ -21,6 +22,23 @@ Route::middleware('guest')->group(function () {
         ->name('login');
 
     Route::post('login', [AuthenticatedSessionController::class, 'store']);
+
+    Route::get('{role}/login', [AuthenticatedSessionController::class, 'create'])
+        ->whereIn('role', ['siswa', 'guru', 'ortu', 'admin', 'staf', 'bendahara', 'kantin', 'ppdb', 'bk'])
+        ->name('role.login');
+
+    Route::post('{role}/login', [AuthenticatedSessionController::class, 'store'])
+        ->whereIn('role', ['siswa', 'guru', 'ortu', 'admin', 'staf', 'bendahara', 'kantin', 'ppdb', 'bk'])
+        ->name('role.login.store');
+
+    Route::get('ortu/otp', [ParentOtpController::class, 'create'])
+        ->name('ortu.otp');
+
+    Route::post('ortu/otp/request', [ParentOtpController::class, 'requestOtp'])
+        ->name('ortu.otp.request');
+
+    Route::post('ortu/otp/verify', [ParentOtpController::class, 'verifyOtp'])
+        ->name('ortu.otp.verify');
 
     Route::get('forgot-password', [PasswordResetLinkController::class, 'create'])
         ->name('password.request');

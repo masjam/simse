@@ -9,10 +9,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('grades', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('student_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('subject_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('teacher_id')->constrained()->cascadeOnDelete();
+            $table->uuid('id')->primary();
+            $table->foreignUuid('student_id')->constrained()->cascadeOnDelete();
+            $table->foreignUuid('subject_id')->constrained()->cascadeOnDelete();
+            $table->foreignUuid('teacher_id')->constrained()->cascadeOnDelete();
             $table->enum('type', ['Tugas', 'Kuis', 'UTS', 'UAS']);
             $table->decimal('score', 5, 2); // e.g. 95.50
             $table->text('notes')->nullable();

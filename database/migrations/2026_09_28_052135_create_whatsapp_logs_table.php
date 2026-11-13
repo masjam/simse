@@ -9,7 +9,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('whatsapp_logs', function (Blueprint $table) {
-            $table->id();
+            $table->uuid('id')->primary();
             $table->string('recipient_name')->nullable();
             $table->string('phone_number');
             $table->text('message');

@@ -4,9 +4,9 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Student;
-use App\Models\User;
-use App\Models\Tingkat;
 use App\Models\StudentClass;
+use App\Models\Tingkat;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -15,20 +15,20 @@ class StudentController extends Controller
     public function index(Request $request)
     {
         $search = $request->query('search', '');
-        
-        $query = User::with(['roles', 'student.studentClass.tingkat'])->when($search, function($q) use ($search) {
+
+        $query = User::with(['roles', 'student.studentClass.tingkat'])->when($search, function ($q) use ($search) {
             $q->where('name', 'like', "%{$search}%")->orWhere('email', 'like', "%{$search}%");
-        })->whereHas('roles', function($q) {
+        })->whereHas('roles', function ($q) {
             $q->where('name', 'Siswa');
         });
 
         if ($request->filled('tingkat_id')) {
-            $query->whereHas('student.studentClass', function($q) use ($request) {
+            $query->whereHas('student.studentClass', function ($q) use ($request) {
                 $q->where('tingkat_id', $request->tingkat_id);
             });
         }
         if ($request->filled('rombel_id')) {
-            $query->whereHas('student', function($q) use ($request) {
+            $query->whereHas('student', function ($q) use ($request) {
                 $q->where('student_class_id', $request->rombel_id);
             });
         }
@@ -38,8 +38,8 @@ class StudentController extends Controller
         return Inertia::render('Admin/Students/Index', [
             'users' => $users,
             'filters' => $request->only(['search', 'tingkat_id', 'rombel_id']),
-            'tingkats' => \App\Models\Tingkat::all(),
-            'rombels' => \App\Models\StudentClass::all(),
+            'tingkats' => Tingkat::all(),
+            'rombels' => StudentClass::all(),
         ]);
     }
 
@@ -48,21 +48,21 @@ class StudentController extends Controller
         // the ID passed is actually the User ID from the users table.
         // We need to fetch the User and the associated Student profile.
         $user = User::with(['student.achievements', 'student.periodics', 'student.studentClass'])->findOrFail($id);
-        
-        if (!$user->hasRole('Siswa')) {
+
+        if (! $user->hasRole('Siswa')) {
             return redirect()->route('admin.users')->with('error', 'User bukan siswa.');
         }
 
         // If student profile doesn't exist yet, we can create an empty one
-        if (!$user->student) {
+        if (! $user->student) {
             $class = StudentClass::first();
-            if (!$class) {
+            if (! $class) {
                 return redirect()->route('admin.users')->with('error', 'Buat Kelas/Rombel terlebih dahulu.');
             }
             $user->student()->create([
                 'student_class_id' => $class->id,
-                'nisn' => 'TBD-' . time(),
-                'nik' => 'TBD-' . time(),
+                'nisn' => 'TBD-'.time(),
+                'nik' => 'TBD-'.time(),
             ]);
             $user->load('student');
         }
@@ -79,7 +79,7 @@ class StudentController extends Controller
         $user = User::findOrFail($id);
         $student = $user->student;
 
-        if (!$student) {
+        if (! $student) {
             return back()->with('error', 'Profil siswa tidak ditemukan.');
         }
 
@@ -102,7 +102,7 @@ class StudentController extends Controller
             'nik_ayah', 'tahun_lahir_ayah', 'pendidikan_ayah', 'berkebutuhan_khusus_ayah', 'penghasilan_ayah',
             'status_hidup_ibu', 'nik_ibu', 'tahun_lahir_ibu', 'pendidikan_ibu', 'berkebutuhan_khusus_ibu', 'penghasilan_ibu',
             'mempunyai_wali', 'nama_wali', 'nik_wali', 'tahun_lahir_wali', 'pendidikan_wali', 'pekerjaan_wali', 'penghasilan_wali',
-            'no_telepon_rumah', 'no_hp'
+            'no_telepon_rumah', 'no_hp',
         ]));
 
         return back()->with('success', 'Data peserta didik berhasil diperbarui.');
@@ -111,7 +111,9 @@ class StudentController extends Controller
     public function storeAchievement(Request $request, $id)
     {
         $user = User::findOrFail($id);
-        if (!$user->student) return back()->with('error', 'Siswa tidak ditemukan.');
+        if (! $user->student) {
+            return back()->with('error', 'Siswa tidak ditemukan.');
+        }
 
         $request->validate([
             'name' => 'required|string',
@@ -127,7 +129,9 @@ class StudentController extends Controller
     public function storePeriodic(Request $request, $id)
     {
         $user = User::findOrFail($id);
-        if (!$user->student) return back()->with('error', 'Siswa tidak ditemukan.');
+        if (! $user->student) {
+            return back()->with('error', 'Siswa tidak ditemukan.');
+        }
 
         $request->validate([
             'tinggi_badan' => 'nullable|numeric',
@@ -144,7 +148,7 @@ class StudentController extends Controller
     public function print($id)
     {
         $user = User::with(['student.achievements', 'student.periodics', 'student.studentClass.tingkat'])->findOrFail($id);
-        if (!$user->hasRole('Siswa')) {
+        if (! $user->hasRole('Siswa')) {
             abort(404, 'Data bukan siswa.');
         }
 

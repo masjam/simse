@@ -1,9 +1,16 @@
 <?php
 
+use App\Http\Middleware\EnsureKioskMacAllowed;
+use App\Http\Middleware\EnsureModuleIsActive;
+use App\Http\Middleware\HandleInertiaRequests;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
 use Illuminate\Http\Request;
+use Spatie\Permission\Middleware\PermissionMiddleware;
+use Spatie\Permission\Middleware\RoleMiddleware;
+use Spatie\Permission\Middleware\RoleOrPermissionMiddleware;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -13,14 +20,32 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->web(append: [
-            \App\Http\Middleware\HandleInertiaRequests::class,
-            \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
+            HandleInertiaRequests::class,
+            AddLinkHeadersForPreloadedAssets::class,
         ]);
         $middleware->alias([
-            'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,
-            'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
-            'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
+            'role' => RoleMiddleware::class,
+            'permission' => PermissionMiddleware::class,
+            'role_or_permission' => RoleOrPermissionMiddleware::class,
+            'module' => EnsureModuleIsActive::class,
+            'kiosk.mac' => EnsureKioskMacAllowed::class,
         ]);
+        $middleware->redirectGuestsTo(function (Request $request): string {
+            if ($request->is('guru') || $request->is('guru/*')) {
+                return route('role.login', ['role' => 'guru']);
+            }
+            if ($request->is('admin') || $request->is('admin/*')) {
+                return route('role.login', ['role' => 'admin']);
+            }
+            if ($request->is('bendahara') || $request->is('bendahara/*')) {
+                return route('role.login', ['role' => 'bendahara']);
+            }
+            if ($request->is('staf') || $request->is('staf/*')) {
+                return route('role.login', ['role' => 'staf']);
+            }
+
+            return route('login');
+        });
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

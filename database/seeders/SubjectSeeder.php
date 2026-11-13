@@ -2,7 +2,7 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use App\Models\Subject;
 use Illuminate\Database\Seeder;
 
 class SubjectSeeder extends Seeder
@@ -26,7 +26,7 @@ class SubjectSeeder extends Seeder
         ];
 
         foreach ($subjects as $subject) {
-            \App\Models\Subject::updateOrCreate(
+            Subject::updateOrCreate(
                 ['code' => $subject['code']],
                 ['name' => $subject['name']]
             );

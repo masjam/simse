@@ -2,15 +2,19 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ExamAttempt extends Model
 {
+    use HasUuids;
+
     protected $fillable = [
         'exam_id',
         'student_id',
+        'answers',
         'started_at',
         'finished_at',
         'is_forced_submit',
@@ -18,6 +22,7 @@ class ExamAttempt extends Model
     ];
 
     protected $casts = [
+        'answers' => 'array',
         'started_at' => 'datetime',
         'finished_at' => 'datetime',
         'is_forced_submit' => 'boolean',

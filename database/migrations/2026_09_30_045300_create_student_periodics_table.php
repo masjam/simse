@@ -9,8 +9,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('student_periodics', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('student_id')->constrained()->cascadeOnDelete();
+            $table->uuid('id')->primary();
+            $table->foreignUuid('student_id')->constrained()->cascadeOnDelete();
             $table->float('tinggi_badan')->nullable();
             $table->float('berat_badan')->nullable();
             $table->float('lingkar_kepala')->nullable();
