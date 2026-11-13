@@ -1,148 +1,96 @@
 <script setup>
-import TeacherLayout from '@/Layouts/TeacherLayout.vue';
-import { Head, Link } from '@inertiajs/vue3';
 import { ref, computed } from 'vue';
+import { Head } from '@inertiajs/vue3';
+import PortalShell from '@/Layouts/PortalShell.vue';
+import PageHeader from '@/Components/ui/PageHeader.vue';
+import Tabs from '@/Components/ui/Tabs.vue';
+import StatCard from '@/Components/ui/StatCard.vue';
+import EmptyState from '@/Components/ui/EmptyState.vue';
 
 const props = defineProps({
     schedules: { type: Array, default: () => [] },
 });
 
-const selectedDay = ref(new Date().getDay() === 0 ? 1 : new Date().getDay());
+const todayDay = new Date().getDay() === 0 ? 1 : new Date().getDay();
+const selectedDay = ref(String(todayDay));
 
-const days = [
-    { id: 1, name: 'Senin', short: 'Sen' },
-    { id: 2, name: 'Selasa', short: 'Sel' },
-    { id: 3, name: 'Rabu', short: 'Rab' },
-    { id: 4, name: 'Kamis', short: 'Kam' },
-    { id: 5, name: 'Jumat', short: 'Jum' },
-    { id: 6, name: 'Sabtu', short: 'Sab' },
+const dayTabs = [
+    { id: '1', label: 'Senin' },
+    { id: '2', label: 'Selasa' },
+    { id: '3', label: 'Rabu' },
+    { id: '4', label: 'Kamis' },
+    { id: '5', label: 'Jumat' },
+    { id: '6', label: 'Sabtu' },
 ];
 
 const allSchedules = computed(() => props.schedules?.length ? props.schedules : []);
 
 const filteredSchedules = computed(() => {
-    return allSchedules.value.filter(s => (s.dayNumber ? s.dayNumber === selectedDay.value : s.day === selectedDay.value));
+    const dayNum = parseInt(selectedDay.value);
+    return allSchedules.value.filter(s => (s.dayNumber ? s.dayNumber === dayNum : s.day === dayNum));
 });
 
 const totalJam = computed(() => filteredSchedules.value.reduce((acc, s) => acc + (s.jpl || 2), 0));
-
-const colorMap = {
-    indigo: { bg: 'bg-indigo-50', border: 'border-indigo-200', text: 'text-indigo-700', dot: 'bg-indigo-500', badge: 'bg-indigo-100 text-indigo-700' },
-    emerald: { bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-700', dot: 'bg-emerald-500', badge: 'bg-emerald-100 text-emerald-700' },
-    purple: { bg: 'bg-purple-50', border: 'border-purple-200', text: 'text-purple-700', dot: 'bg-purple-500', badge: 'bg-purple-100 text-purple-700' },
-    amber: { bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-700', dot: 'bg-amber-500', badge: 'bg-amber-100 text-amber-700' },
-    rose: { bg: 'bg-rose-50', border: 'border-rose-200', text: 'text-rose-700', dot: 'bg-rose-500', badge: 'bg-rose-100 text-rose-700' },
-};
+const totalStudents = computed(() => filteredSchedules.value.reduce((acc, s) => acc + (s.students || 0), 0));
 </script>
 
 <template>
-    <Head title="Jadwal Mengajar" />
-    <TeacherLayout>
-        <template #header-title>
-            <h1 class="text-lg font-bold text-slate-800">Jadwal Mengajar</h1>
-        </template>
-        <template #header-subtitle>
-            <p class="text-xs text-slate-500">Jadwal kegiatan belajar mengajar mingguan Anda</p>
+    <Head title="Jadwal Mengajar Pendidik" />
+
+    <PortalShell variant="sidebar">
+        <template #header>
+            <PageHeader
+                title="Jadwal Mengajar Pendidik"
+                description="Jadwal Kegiatan Belajar Mengajar Mingguan SD Muhammadiyah Al Mujahidin"
+            />
         </template>
 
-        <div class="space-y-6">
-            <!-- Day Selector Tabs -->
-            <div class="bg-white rounded-xl border border-slate-200/60 shadow-sm p-2">
-                <div class="flex gap-1">
-                    <button v-for="day in days" :key="day.id" @click="selectedDay = day.id"
-                            class="flex-1 py-3 px-2 rounded-lg text-sm font-bold transition-all duration-200"
-                            :class="selectedDay === day.id
-                                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200'
-                                : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700'">
-                        <span class="hidden sm:inline">{{ day.name }}</span>
-                        <span class="sm:hidden">{{ day.short }}</span>
-                    </button>
-                </div>
+        <div class="space-y-4">
+            <!-- Day Tabs -->
+            <Tabs v-model="selectedDay" :tabs="dayTabs" variant="pills" />
+
+            <!-- Stats Bar -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <StatCard title="Sesi Mengajar" :value="filteredSchedules.length" unit="Sesi" />
+                <StatCard title="Total Durasi" :value="totalJam" unit="Jam Pelajaran" />
+                <StatCard title="Total Siswa Diampu" :value="totalStudents" unit="Siswa" />
             </div>
 
-            <!-- Summary Bar -->
-            <div class="grid grid-cols-3 gap-4">
-                <div class="bg-white rounded-xl border border-slate-200/60 shadow-sm p-4 flex items-center gap-3">
-                    <div class="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-lg flex items-center justify-center">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                    </div>
-                    <div>
-                        <p class="text-xl font-bold text-slate-800">{{ filteredSchedules.length }}</p>
-                        <p class="text-xs text-slate-500">Sesi Mengajar</p>
-                    </div>
-                </div>
-                <div class="bg-white rounded-xl border border-slate-200/60 shadow-sm p-4 flex items-center gap-3">
-                    <div class="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-lg flex items-center justify-center">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    </div>
-                    <div>
-                        <p class="text-xl font-bold text-slate-800">{{ totalJam }} Jam</p>
-                        <p class="text-xs text-slate-500">Total Durasi</p>
-                    </div>
-                </div>
-                <div class="bg-white rounded-xl border border-slate-200/60 shadow-sm p-4 flex items-center gap-3">
-                    <div class="w-10 h-10 bg-purple-50 text-purple-600 rounded-lg flex items-center justify-center">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
-                    </div>
-                    <div>
-                        <p class="text-xl font-bold text-slate-800">{{ filteredSchedules.reduce((a,s) => a + s.students, 0) }}</p>
-                        <p class="text-xs text-slate-500">Total Siswa</p>
-                    </div>
-                </div>
+            <!-- Schedules Cards -->
+            <div v-if="filteredSchedules.length === 0">
+                <EmptyState
+                    title="Tidak Ada Jadwal Mengajar"
+                    description="Tidak ada kegiatan belajar mengajar yang dijadwalkan pada hari ini."
+                />
             </div>
-
-            <!-- Schedule Timeline -->
-            <div v-if="filteredSchedules.length > 0" class="space-y-3">
-                <div v-for="(schedule, idx) in filteredSchedules" :key="schedule.id"
-                     class="bg-white rounded-xl border shadow-sm overflow-hidden transition-all hover:shadow-md"
-                     :class="colorMap[schedule.color]?.border || 'border-slate-200'">
-                    <div class="flex">
-                        <!-- Color Stripe -->
-                        <div class="w-1.5 shrink-0" :class="colorMap[schedule.color]?.dot || 'bg-slate-400'"></div>
-                        <!-- Content -->
-                        <div class="flex-1 p-5">
-                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                                <div class="flex items-start gap-4">
-                                    <!-- Time Block -->
-                                    <div class="text-center shrink-0 py-2 px-3 rounded-lg bg-slate-50">
-                                        <p class="text-lg font-bold text-slate-800">{{ schedule.timeStart }}</p>
-                                        <p class="text-xs text-slate-400">{{ schedule.timeEnd }}</p>
-                                    </div>
-                                    <!-- Info -->
-                                    <div>
-                                        <h3 class="text-base font-bold text-slate-800">{{ schedule.subject }}</h3>
-                                        <div class="flex flex-wrap items-center gap-2 mt-1.5">
-                                            <span :class="colorMap[schedule.color]?.badge" class="text-xs font-bold px-2.5 py-0.5 rounded-full">{{ schedule.class }}</span>
-                                            <span class="text-xs text-slate-500 flex items-center gap-1">
-                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                                                {{ schedule.room }}
-                                            </span>
-                                            <span class="text-xs text-slate-500 flex items-center gap-1">
-                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
-                                                {{ schedule.students }} siswa
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="flex gap-2 shrink-0">
-                                    <Link :href="route('guru.absensi', { class: schedule.class })" class="px-4 py-2 text-xs font-bold rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition shadow-sm">
-                                        Isi Absensi
-                                    </Link>
-                                </div>
-                            </div>
+            <div v-else class="space-y-3">
+                <div
+                    v-for="s in filteredSchedules"
+                    :key="s.id"
+                    class="bg-surface rounded-card border border-line p-4 shadow-card hover:bg-surface-raised/40 transition-all flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
+                >
+                    <div class="space-y-1">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <span class="px-2.5 py-0.5 rounded-control bg-brand-50 text-brand-700 text-xs font-bold font-mono">
+                                {{ s.time || `${s.time_start} - ${s.time_end}` }}
+                            </span>
+                            <span class="text-xs font-bold text-ink">
+                                Kelas {{ s.class || s.student_class?.name }}
+                            </span>
                         </div>
+                        <h4 class="text-sm font-bold text-ink">{{ s.subject || s.subject?.name }}</h4>
+                        <p class="text-xs text-ink-muted">
+                            Ruang: {{ s.room || 'Ruang Teori' }} &bull; {{ s.jpl || 2 }} JPL &bull; {{ s.students || 30 }} Siswa
+                        </p>
+                    </div>
+
+                    <div class="shrink-0 self-start sm:self-auto">
+                        <span class="px-2.5 py-1 rounded-control bg-surface-raised text-ink-muted border border-line text-xs font-bold">
+                            Tatap Muka
+                        </span>
                     </div>
                 </div>
-            </div>
-
-            <!-- Empty State -->
-            <div v-else class="bg-white rounded-xl border border-slate-200/60 shadow-sm p-12 text-center">
-                <div class="w-16 h-16 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                </div>
-                <h3 class="text-lg font-bold text-slate-700">Tidak Ada Jadwal</h3>
-                <p class="text-sm text-slate-500 mt-1">Anda tidak memiliki jadwal mengajar pada hari ini.</p>
             </div>
         </div>
-    </TeacherLayout>
+    </PortalShell>
 </template>

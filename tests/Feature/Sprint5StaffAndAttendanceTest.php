@@ -51,6 +51,8 @@ class Sprint5StaffAndAttendanceTest extends TestCase
 
     public function test_staff_geolocation_attendance_enforces_configured_school_radius(): void
     {
+        Carbon::setTestNow(Carbon::parse('2026-10-30 07:00:00'));
+
         $staffUser = User::factory()->create(['name' => 'Staf Lokasi']);
         $staffUser->assignRole('Staf Sekolah');
 
@@ -96,6 +98,8 @@ class Sprint5StaffAndAttendanceTest extends TestCase
             ->assertSessionHas('success');
 
         $this->assertNotNull($att->fresh()->time_out);
+
+        Carbon::setTestNow();
     }
 
     public function test_staff_library_circulation_decrements_stock_on_borrow_and_increments_on_return(): void

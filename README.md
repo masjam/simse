@@ -2,8 +2,8 @@
 ### SD Muhammadiyah Al Mujahidin Wonosari
 
 ![Build Status](https://img.shields.io/badge/build-passing-brightgreen)
-![Tests](https://img.shields.io/badge/tests-87%20passed%20(787%20assertions)-brightgreen)
-![Laravel](https://img.shields.io/badge/Laravel-11.x-red)
+![Tests](https://img.shields.io/badge/tests-105%20passed%20(805%20assertions)-brightgreen)
+![Laravel](https://img.shields.io/badge/Laravel-13.x-red)
 ![PHP](https://img.shields.io/badge/PHP-8.3-blue)
 ![Inertia](https://img.shields.io/badge/Inertia.js-v2-purple)
 ![Vue](https://img.shields.io/badge/Vue.js-3.x-emerald)
@@ -22,24 +22,26 @@
    - [3. Portal Bendahara & Keuangan](#3-portal-bendahara--keuangan)
    - [4. Portal Staf Sekolah](#4-portal-staf-sekolah)
    - [5. Portal Siswa (Mobile-First)](#5-portal-siswa-mobile-first)
-   - [6. Portal Orang Tua (Wali Santri)](#6-portal-orang-tua-wali-santri)
+   - [6. Portal Orang Tua (Wali Siswa)](#6-portal-orang-tua-wali-siswa)
    - [7. E-Kantin Digital & Kartu ATM Siswa (Cashless)](#7-e-kantin-digital--kartu-atm-siswa-cashless)
    - [8. Kiosk Presensi Siswa Mandiri (Terkunci MAC Address)](#8-kiosk-presensi-siswa-mandiri-terkunci-mac-address)
    - [9. PPDB Online & Konversi Otomatis Siswa Baru](#9-ppdb-online--konversi-otomatis-siswa-baru)
    - [10. CMS Website Sekolah & Landing Page Publik](#10-cms-website-sekolah--landing-page-publik)
 3. [Arsitektur & Keamanan](#-arsitektur--keamanan)
-4. [Persyaratan Sistem & Instalasi](#-persyaratan-sistem--instalasi)
+4. [Persyaratan Sistem & Instalasi Laragon](#-persyaratan-sistem--instalasi-laragon)
 5. [Daftar Kredensial Akun Demo](#-daftar-kredensial-akun-demo)
 6. [Pengujian & Jaminan Mutu](#-pengujian--jaminan-mutu)
+7. [Dokumentasi Rekayasa](#-dokumentasi-rekayasa)
 
 ---
 
 ## 🚀 Status Pengembangan & Sprint
 
-Pengembangan dilakukan secara bertahap dalam **6 Sprint terstruktur** dengan status **100% Selesai & Teruji**:
+Pengembangan dilakukan secara bertahap dalam **6 Sprint fitur + Sprint 0 Stabilisasi Fondasi** dengan status **100% Selesai & Teruji**:
 
 | Sprint | Modul / Fokus Pengembangan | Status |
 |---|---|:---:|
+| **Sprint 0** | **Stabilisasi Fondasi**: Pembersihan mockup/placeholder, refaktor controller besar (< 400 baris), seeder konteks SD (1A-6B), strict mode Eloquent, uji IDOR (`CrossUserAccessTest`), integrasi CI GitHub Actions, konsolidasi Tailwind v3. | ✅ Selesai |
 | **Sprint 1** | **Portal Siswa Mobile-First**: Dashboard, Jadwal, Nilai/e-Raport, LMS (Materi & Tugas), CBT Interaktif dengan Timer Server & Anti-Cheat (Visibility API, fullscreen lock), KTS Digital dengan QR Code dinamis. | ✅ Selesai |
 | **Sprint 2** | **Portal Orang Tua**: Login Passwordless via WhatsApp OTP + Tanggal Lahir Anak, Panel 4 Tab (Akademik, Presensi, Keuangan, BK), Switcher Multi-Anak, Pengajuan Prestasi Siswa Mandiri. | ✅ Selesai |
 | **Sprint 3** | **WhatsApp Gateway & Pusat Notifikasi**: Pengiriman WA via Queue Job (abstraksi driver Log/Fonnte/Wablas), Notifikasi In-App Realtime (Bell Icon), Saklar Microservices / Toggle Modul Sistem. | ✅ Selesai |
@@ -52,7 +54,7 @@ Pengembangan dilakukan secara bertahap dalam **6 Sprint terstruktur** dengan sta
 ## 🌟 Fitur Unggulan per Portal
 
 ### 1. Portal Super Admin
-- **Pusat Kendali Data Induk**: Manajemen Akun Pengguna, Guru, Siswa, Staf, Tingkat (1-6), Rombongan Belajar, dan Mata Pelajaran.
+- **Pusat Kendali Data Induk**: Manajemen Akun Pengguna, Guru, Siswa, Staf, Tingkat (1-6), Rombongan Belajar (1A-6B), dan Mata Pelajaran SD (PAI, Al-Islam, B. Arab, IPAS, MTK, dll).
 - **Jadwal Pelajaran Otomatis**: Algoritma penjadwalan pintar untuk mencegah bentrok guru dan ruang kelas.
 - **Ekspor & Impor Data**: Manajemen data massal berbasis format Excel template resmi.
 - **Manajemen Microservices (`/admin/modules`)**: Kemampuan menyembunyikan menu dan memblokir route dinamis untuk modul yang dinonaktifkan via middleware `EnsureModuleIsActive`.
@@ -74,7 +76,7 @@ Pengembangan dilakukan secara bertahap dalam **6 Sprint terstruktur** dengan sta
 - **Manajemen Tagihan SPP Multi-Periode**:
   - Konfigurasi pos tagihan master berperiode: **Bulanan, Semester, Tahunan, dan Sekali Bayar**.
   - Distribusi tagihan siswa massal per kelas dengan selektor sub-periode otomatis (*Januari–Desember* untuk Bulanan, *Semester Ganjil/Genap* untuk Semester).
-  - Monitoring tunggakan siswa dan pengiriman surat tegangan via WhatsApp dalam satu klik.
+  - Monitoring tunggakan siswa dan pengiriman surat teguran via WhatsApp dalam satu klik.
 - **Payroll & Penggajian Terintegrasi**: Perhitungan tunjangan dan honor presensi guru/staf secara otomatis berdasarkan data kehadiran riil (`$attendanceDays * Rp 25.000`).
 - **Monitoring E-Kantin**: Laporan omset penjualan, pembagian bagi-hasil stand kantin, dan rekap mutasi dompet siswa.
 
@@ -89,13 +91,13 @@ Pengembangan dilakukan secara bertahap dalam **6 Sprint terstruktur** dengan sta
 - **LMS Interaktif & Gamifikasi Belajar**:
   - Akses materi per mapel, streaming video, dan pengunduhan lampiran dokumen yang terenkripsi aman.
   - Pengumpulan tugas online (unggah dokumen dan jawaban teks).
-  - **Sistem Gamifikasi**: Akumulasi XP poin, level progresif (Level 1 *Penuntut Ilmu Pemula* s.d. Level 5 *Cendekiawan Belia Mendunia*), dan lencana prestasi belajar (*Langkah Pertama, Kolektor Nilai A, Santri Tekun, Bintang Mujahidin*).
+  - **Sistem Gamifikasi**: Akumulasi XP poin, level progresif (Level 1 *Penuntut Ilmu Pemula* s.d. Level 5 *Cendekiawan Belia Mendunia*), dan lencana prestasi belajar (*Langkah Pertama, Kolektor Nilai A, Siswa Tekun, Bintang Mujahidin*).
 - **CBT Anti-Cheat Mandiri**:
   - Timer berbasis waktu server (tidak ter-reset saat halaman direfresh).
   - Anti-kecurangan aktif: Deteksi pergantian tab browser (*Page Visibility API*), pemblokiran klik kanan/inspeksi, kunci mode layar penuh (*Fullscreen Lock*), pencatatan ke log pelanggaran `exam_violations`, dan auto-submit otomatis jika melanggar batas toleransi guru.
 - **E-Kantin Cashless Siswa**: Belanja jajanan sehat langsung dari kantin sekolah dengan saldo dompet digital dan otentikasi PIN 6 digit.
 
-### 6. Portal Orang Tua (Wali Santri)
+### 6. Portal Orang Tua (Wali Siswa)
 - **Login Passwordless (Bebas Password)**: Masuk cukup dengan nomor WhatsApp yang terdaftar dan tanggal lahir anak, diverifikasi melalui kode OTP WhatsApp (keamanan ekstra dengan rate limiting & lockout anti brute-force).
 - **Dukungan Multi-Anak**: Orang tua dengan lebih dari satu anak dapat beralih santri (*switch active child*) secara instan dalam satu akun.
 - **Panel 4 Tab Informasi Lengkap**:
@@ -138,27 +140,28 @@ Pengembangan dilakukan secara bertahap dalam **6 Sprint terstruktur** dengan sta
 
 ## 🔒 Arsitektur & Keamanan
 
-- **Primary Key UUID**: Seluruh tabel menggunakan UUID v7 (`HasUuids`) untuk mencegah eksploitasi enumerasi ID (*Insecure Direct Object Reference*).
-- **Proteksi Berkas Privat**: Berkas sensitif (bukti pembayaran transfer, berkas PPDB, lampiran tugas siswa, slip gaji) disimpan di `storage/app/` (disk `local` privat) dan hanya dilayani melalui *Streamed Response* terproteksi route middleware.
-- **Otorisasi Data Ketat**: Data portal siswa dan orang tua dilindungi policy ketat sehingga pengguna hanya dapat melihat dan memanipulasi data milik diri sendiri atau anak kandungnya.
-- **Integritas Transaksi Finansial**: Setiap mutasi dompet, transaksi kasir, pembayaran kantin, dan konversi PPDB dijalankan di dalam blok `DB::transaction` untuk mencegah inkonsistensi data atau *race conditions*.
-- **Anti-Cheat CBT**: Kombinasi *Visibility API*, larangan navigasi keluar tab, fullscreen lock, dan pencatatan pelanggaran otomatis.
+- **Primary Key UUID**: Seluruh tabel menggunakan UUID (`HasUuids`) untuk mencegah eksploitasi enumerasi ID (*Insecure Direct Object Reference*).
+- **Proteksi Berkas Privat**: Berkas sensitif (bukti pembayaran transfer, berkas PPDB, lampiran tugas siswa, slip gaji) disimpan di disk `private` / `local` dan hanya dilayani melalui *Streamed Response* terproteksi route middleware dan policy.
+- **Pagar IDOR (Cross-User Isolation)**: Pengujian `CrossUserAccessTest` menjamin pengguna A tidak dapat melihat, mengubah, atau mengunduh resource milik pengguna B (respons 403 atau 404).
+- **Strict Mode & Prevent Lazy Loading**: `Model::preventLazyLoading()` dan `Model::shouldBeStrict()` aktif di lingkungan non-produksi untuk mencegah query N+1 dan kesalahan mass-assignment.
+- **Integritas Transaksi Finansial**: Setiap mutasi dompet, transaksi kasir, pembayaran kantin, dan konversi PPDB dijalankan di dalam blok `DB::transaction` untuk mencegah inkonsistensi data.
 
 ---
 
-## 💻 Persyaratan Sistem & Instalasi
+## 💻 Persyaratan Sistem & Instalasi Laragon
 
 ### Kebutuhan Perangkat Lunak
-- **PHP**: Versi 8.3 atau lebih baru
+- **PHP**: Versi 8.3 (tersedia di Laragon)
 - **Composer**: Versi 2.x
 - **Node.js & NPM**: Versi 20.x atau lebih baru
-- **Database Server**: MySQL 8.x / MariaDB 10.x (Direkomendasikan menggunakan **Laragon** pada Windows)
-- **Web Browser**: Google Chrome / Microsoft Edge / Mozilla Firefox terbaru
+- **Database Server**: MySQL 8.x (Laragon pada Windows)
+- **Web Server**: Apache / Nginx bawaan Laragon (vhost: `http://simse.test`)
 
-### Langkah Instalasi
+### Panduan Instalasi Langkah Demi Langkah
 
-1. **Clone Repositori & Masuk ke Direktori**:
+1. **Clone Repositori ke Direktori Laragon `www`**:
    ```bash
+   cd C:\laragon\www   # atau H:\laragon\www sesuai konfigurasi Laragon Anda
    git clone https://github.com/sdmujahidin/simse.git
    cd simse
    ```
@@ -174,7 +177,7 @@ Pengembangan dilakukan secara bertahap dalam **6 Sprint terstruktur** dengan sta
    ```
 
 4. **Konfigurasi Berkas Lingkungan (`.env`)**:
-   Salin `.env.example` menjadi `.env`, lalu sesuaikan konfigurasi database Laragon:
+   Salin `.env.example` menjadi `.env`, lalu sesuaikan kredensial MySQL Laragon Anda:
    ```env
    APP_NAME=SIMSE
    APP_ENV=local
@@ -199,23 +202,35 @@ Pengembangan dilakukan secara bertahap dalam **6 Sprint terstruktur** dengan sta
    php artisan key:generate
    ```
 
-6. **Migrasi Database & Jalankan Seeder**:
+6. **Migrasi Database & Seeding Data Lengkap SD**:
+   Perintah ini akan membuat struktur tabel baru dan mengisikan data demo lengkap (Kelas 1A–6B, mapel SD, jadwal, akun tiap role, tagihan, kantin, dll):
    ```bash
    php artisan migrate:fresh --seed
    ```
 
 7. **Kompilasi Aset Frontend**:
    ```bash
-   # Mode pengembangan (live reload)
+   # Mode pengembangan dengan Vite HMR
    npm run dev
 
-   # Atau build produksi
+   # Atau build produksi teroptimasi
    npm run build
    ```
 
-8. **Jalankan Worker Antrean (Queue) untuk WhatsApp & Notifikasi**:
+8. **Menjalankan Queue Worker (WhatsApp, Notifikasi, Background Jobs)**:
+   Buka terminal baru di direktori proyek dan jalankan:
    ```bash
-   php artisan queue:work
+   php artisan queue:work --tries=3 --timeout=90
+   ```
+
+9. **Menjalankan Scheduler (Tugas Terjadwal Otomatis)**:
+   Untuk menjalankan tugas otomatis (seperti pengingat tagihan dan backup):
+   ```bash
+   # Pada lingkungan lokal / development
+   php artisan schedule:work
+
+   # Pada server produksi (Linux Crontab)
+   # * * * * * cd /path-to-your-project && php artisan schedule:run >> /dev/null 2>&1
    ```
 
 ---
@@ -240,11 +255,11 @@ Untuk memudahkan eksplorasi dan verifikasi fitur, tersedia akun pengujian dengan
 
 Aplikasi ini dilengkapi rangkaian uji otomatis menyeluruh menggunakan **PHPUnit** dan pemformat kode resmi **Laravel Pint**.
 
-- **Menjalankan Seluruh Test Suite**:
+- **Menjalankan Seluruh Test Suite (105 tests)**:
   ```bash
   php artisan test
   ```
-  *Hasil pengujian terakhir:* **87 tests passed, 0 failures (787 assertions)**.
+  *Hasil pengujian:* **105 tests passed, 0 failures (805 assertions)** termasuk uji keamanan IDOR (`CrossUserAccessTest`).
 
 - **Memformat Kode Sesuai Standar Laravel**:
   ```bash
@@ -255,6 +270,13 @@ Aplikasi ini dilengkapi rangkaian uji otomatis menyeluruh menggunakan **PHPUnit*
   ```bash
   npm run build
   ```
+
+---
+
+## 📖 Dokumentasi Rekayasa
+
+- [Konvensi Arsitektur & Standar Kode (`docs/CONVENTIONS.md`)](file:///h:/laragon/www/simse/docs/CONVENTIONS.md)
+- [Catatan Perubahan Versi (`docs/CHANGELOG.md`)](file:///h:/laragon/www/simse/docs/CHANGELOG.md)
 
 ---
 

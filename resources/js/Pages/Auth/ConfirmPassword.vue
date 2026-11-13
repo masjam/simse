@@ -1,10 +1,11 @@
 <script setup>
-import GuestLayout from '@/Layouts/GuestLayout.vue';
-import InputError from '@/Components/InputError.vue';
-import InputLabel from '@/Components/InputLabel.vue';
-import PrimaryButton from '@/Components/PrimaryButton.vue';
-import TextInput from '@/Components/TextInput.vue';
 import { Head, useForm } from '@inertiajs/vue3';
+import PortalShell from '@/Layouts/PortalShell.vue';
+import AppCard from '@/Components/ui/AppCard.vue';
+import FormField from '@/Components/ui/FormField.vue';
+import AppInput from '@/Components/ui/AppInput.vue';
+import AppButton from '@/Components/ui/AppButton.vue';
+import ApplicationLogo from '@/Components/ApplicationLogo.vue';
 
 const form = useForm({
     password: '',
@@ -18,38 +19,45 @@ const submit = () => {
 </script>
 
 <template>
-    <GuestLayout>
-        <Head title="Confirm Password" />
+    <Head title="Konfirmasi Kata Sandi - SIMSE" />
+    <PortalShell variant="bare">
+        <div class="min-h-screen py-12 px-4 flex flex-col justify-center items-center">
+            <div class="w-full max-w-md space-y-6">
+                <div class="text-center space-y-2">
+                    <div class="w-14 h-14 bg-brand-50 border border-brand-200 rounded-control flex items-center justify-center p-2.5 mx-auto shadow-card">
+                        <ApplicationLogo class="w-full h-full text-brand-700" />
+                    </div>
+                    <h2 class="text-xl font-bold text-ink">Area Terproteksi</h2>
+                    <p class="text-xs text-ink-muted">
+                        Ini adalah area keamanan khusus. Mohon konfirmasikan kata sandi akun Anda untuk melanjutkan.
+                    </p>
+                </div>
 
-        <div class="mb-4 text-sm text-gray-600">
-            This is a secure area of the application. Please confirm your
-            password before continuing.
+                <AppCard>
+                    <form @submit.prevent="submit" class="space-y-4">
+                        <FormField label="Kata Sandi Akun" :error="form.errors.password" required>
+                            <AppInput
+                                v-model="form.password"
+                                type="password"
+                                required
+                                autofocus
+                            />
+                        </FormField>
+
+                        <div class="pt-2">
+                            <AppButton
+                                type="submit"
+                                variant="primary"
+                                size="lg"
+                                class="w-full shadow-card"
+                                :loading="form.processing"
+                            >
+                                Konfirmasi & Lanjutkan
+                            </AppButton>
+                        </div>
+                    </form>
+                </AppCard>
+            </div>
         </div>
-
-        <form @submit.prevent="submit">
-            <div>
-                <InputLabel for="password" value="Password" />
-                <TextInput
-                    id="password"
-                    type="password"
-                    class="mt-1 block w-full"
-                    v-model="form.password"
-                    required
-                    autocomplete="current-password"
-                    autofocus
-                />
-                <InputError class="mt-2" :message="form.errors.password" />
-            </div>
-
-            <div class="mt-4 flex justify-end">
-                <PrimaryButton
-                    class="ms-4"
-                    :class="{ 'opacity-25': form.processing }"
-                    :disabled="form.processing"
-                >
-                    Confirm
-                </PrimaryButton>
-            </div>
-        </form>
-    </GuestLayout>
+    </PortalShell>
 </template>

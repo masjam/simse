@@ -1,7 +1,19 @@
 <script setup>
-import CanteenLayout from '@/Layouts/CanteenLayout.vue';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { ref } from 'vue';
+import PortalShell from '@/Layouts/PortalShell.vue';
+import PageHeader from '@/Components/ui/PageHeader.vue';
+import StatCard from '@/Components/ui/StatCard.vue';
+import AppCard from '@/Components/ui/AppCard.vue';
+import AppButton from '@/Components/ui/AppButton.vue';
+import AppInput from '@/Components/ui/AppInput.vue';
+import FormField from '@/Components/ui/FormField.vue';
+import Modal from '@/Components/ui/Modal.vue';
+import StatusBadge from '@/Components/ui/StatusBadge.vue';
+import EmptyState from '@/Components/ui/EmptyState.vue';
+import MoneyText from '@/Components/domain/MoneyText.vue';
+import { useConfirm } from '@/composables/useConfirm';
+import { useToast } from '@/composables/useToast';
 
 const props = defineProps({
     stand: { type: Object, required: true },
@@ -9,227 +21,281 @@ const props = defineProps({
     orders: { type: Array, required: true },
 });
 
-const editStandOpen = ref(false);
+const { confirm } = useConfirm();
+const toast = useToast();
+
+const editStandModal = ref(false);
 const standForm = useForm({
     name: props.stand.name,
     description: props.stand.description || '',
 });
 
-const formatRupiah = (amount) => new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    minimumFractionDigits: 0,
-}).format(amount || 0);
+const toggleOpen = async () => {
+    const nextState = !props.stand.is_open;
+    const ok = await confirm({
+        title: nextState ? 'Buka Stan Kantin' : 'Tutup Stan Sementara',
+        message: nextState
+            ? 'Stan akan ditampilkan sebagai Buka dan siswa dapat melakukan pemesanan.'
+            : 'Stan akan ditutup sementara dan tidak menerima pesanan baru.',
+        confirmLabel: nextState ? 'Buka Sekarang' : 'Tutup Sementara',
+        variant: nextState ? 'primary' : 'warning',
+    });
 
-const toggleOpen = () => {
-    router.post(route('kantin.toggle-open'), {}, { preserveScroll: true });
+    if (ok) {
+        router.post(route('kantin.toggle-open'), {}, {
+            preserveScroll: true,
+            onSuccess: () => toast.success(nextState ? 'Stan berhasil dibuka!' : 'Stan berhasil ditutup sementara.'),
+        });
+    }
 };
 
 const submitStand = () => {
     standForm.post(route('kantin.stand.update'), {
         preserveScroll: true,
         onSuccess: () => {
-            editStandOpen.value = false;
+            editStandModal.value = false;
+            toast.success('Informasi profil stan berhasil diperbarui!');
         },
     });
 };
 
 const changeStatus = (orderId, status) => {
-    router.patch(route('kantin.orders.status', orderId), { status }, { preserveScroll: true });
+    router.patch(route('kantin.orders.status', orderId), { status }, {
+        preserveScroll: true,
+        onSuccess: () => toast.success(`Status pesanan diperbarui menjadi: ${status}`),
+    });
 };
 
-const statusBadgeClass = (status) => {
+const mapOrderStatusVariant = (status) => {
     switch (status) {
-        case 'Menunggu Konfirmasi':
-            return 'bg-amber-100 text-amber-800 border-amber-200';
-        case 'Sedang Dimasak':
-            return 'bg-sky-100 text-sky-800 border-sky-200';
-        case 'Siap Diambil':
-            return 'bg-indigo-100 text-indigo-800 border-indigo-200';
-        case 'Selesai':
-            return 'bg-emerald-100 text-emerald-800 border-emerald-200';
-        default:
-            return 'bg-rose-100 text-rose-800 border-rose-200';
+        case 'Menunggu Konfirmasi': return 'warning';
+        case 'Sedang Dimasak': return 'brand';
+        case 'Siap Diambil': return 'accent';
+        case 'Selesai': return 'success';
+        default: return 'danger';
     }
 };
 </script>
 
 <template>
     <Head title="Dashboard Stand Kantin" />
-
-    <CanteenLayout>
-        <template #header>
-            <div>
-                <h1 class="text-base sm:text-lg font-extrabold text-slate-800">{{ stand.name }}</h1>
-                <p class="text-xs text-slate-500">Kelola pesanan siswa, status stand, dan saldo penjualan</p>
-            </div>
-        </template>
-
+    <PortalShell variant="sidebar">
         <div class="space-y-6">
-            <!-- Header Stand & Quick Actions -->
-            <div class="bg-white rounded-2xl border border-slate-200 p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4 shadow-sm">
-                <div>
-                    <div class="flex items-center gap-2.5">
-                        <span
-                            class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold border"
-                            :class="stand.is_open ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-rose-50 text-rose-700 border-rose-200'"
-                        >
-                            {{ stand.is_open ? 'Stand Buka' : 'Stand Tutup' }}
-                        </span>
-                        <h2 class="text-lg font-extrabold text-slate-800">{{ stand.name }}</h2>
-                    </div>
-                    <p class="text-sm text-slate-500 mt-1">{{ stand.description || 'Belum ada deskripsi stand.' }}</p>
-                </div>
-                <div class="flex flex-wrap gap-2">
-                    <button
-                        type="button"
-                        class="px-4 py-2 rounded-xl text-xs font-bold border transition"
-                        :class="stand.is_open ? 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100' : 'bg-emerald-600 text-white border-emerald-600 hover:bg-emerald-700'"
-                        @click="toggleOpen"
-                    >
-                        {{ stand.is_open ? 'Tutup Stand Sementara' : 'Buka Stand Sekarang' }}
-                    </button>
-                    <button
-                        type="button"
-                        class="px-4 py-2 rounded-xl text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition"
-                        @click="editStandOpen = !editStandOpen"
-                    >
-                        Ubah Info Stand
-                    </button>
-                    <Link
-                        :href="route('kantin.scan')"
-                        class="px-4 py-2 rounded-xl text-xs font-bold bg-amber-500 text-slate-950 hover:bg-amber-400 transition"
-                    >
-                        Scan QR Pesanan
-                    </Link>
-                </div>
-            </div>
+            <PageHeader
+                :title="stand.name"
+                subtitle="Kelola pesanan siswa, status operasional stan, dan saldo penjualan e-Kantin"
+            />
 
-            <!-- Form Ubah Info Stand -->
-            <form
-                v-if="editStandOpen"
-                class="bg-white rounded-2xl border border-amber-200 p-5 space-y-4 shadow-sm"
-                @submit.prevent="submitStand"
-            >
-                <h3 class="font-bold text-slate-800">Ubah Profil Stand</h3>
-                <div class="grid sm:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-600 mb-1">Nama Stand</label>
-                        <input v-model="standForm.name" type="text" class="w-full rounded-xl border-slate-300 text-sm" required />
-                        <p v-if="standForm.errors.name" class="text-xs text-rose-600 mt-1">{{ standForm.errors.name }}</p>
+            <!-- Header Stand & Quick Actions -->
+            <AppCard>
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                    <div class="space-y-1">
+                        <div class="flex items-center gap-2.5">
+                            <StatusBadge :variant="stand.is_open ? 'success' : 'danger'">
+                                {{ stand.is_open ? 'Stand Buka' : 'Stand Tutup' }}
+                            </StatusBadge>
+                            <h2 class="text-lg font-bold text-ink">{{ stand.name }}</h2>
+                        </div>
+                        <p class="text-xs text-ink-muted">
+                            {{ stand.description || 'Stan e-Kantin SD Muhammadiyah Al Mujahidin' }}
+                        </p>
                     </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-600 mb-1">Deskripsi Singkat</label>
-                        <input v-model="standForm.description" type="text" class="w-full rounded-xl border-slate-300 text-sm" />
+
+                    <div class="flex flex-wrap gap-2">
+                        <AppButton
+                            :variant="stand.is_open ? 'danger' : 'primary'"
+                            size="sm"
+                            @click="toggleOpen"
+                        >
+                            {{ stand.is_open ? 'Tutup Stand Sementara' : 'Buka Stand Sekarang' }}
+                        </AppButton>
+                        <AppButton
+                            variant="secondary"
+                            size="sm"
+                            @click="editStandModal = true"
+                        >
+                            Ubah Info Stand
+                        </AppButton>
+                        <Link :href="route('kantin.scan')">
+                            <AppButton variant="secondary" size="sm">
+                                📷 Scan QR
+                            </AppButton>
+                        </Link>
+                        <Link :href="route('kantin.rfid')">
+                            <AppButton variant="primary" size="sm">
+                                💳 RFID POS
+                            </AppButton>
+                        </Link>
                     </div>
                 </div>
-                <div class="flex justify-end gap-2">
-                    <button type="button" class="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 bg-slate-100" @click="editStandOpen = false">
-                        Batal
-                    </button>
-                    <button type="submit" :disabled="standForm.processing" class="px-4 py-2 rounded-xl text-xs font-bold bg-amber-500 text-slate-950">
-                        Simpan Perubahan
-                    </button>
-                </div>
-            </form>
+            </AppCard>
 
             <!-- KPI Cards -->
             <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
-                    <p class="text-xs font-bold text-slate-500">Saldo Stand</p>
-                    <p class="text-xl font-black text-emerald-700 mt-1">{{ formatRupiah(stand.balance) }}</p>
-                </div>
-                <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
-                    <p class="text-xs font-bold text-slate-500">Omzet Hari Ini</p>
-                    <p class="text-xl font-black text-amber-700 mt-1">{{ formatRupiah(stats.today_revenue) }}</p>
-                </div>
-                <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
-                    <p class="text-xs font-bold text-slate-500">Pesanan Aktif</p>
-                    <p class="text-xl font-black text-sky-700 mt-1">{{ stats.pending_orders }}</p>
-                </div>
-                <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
-                    <p class="text-xs font-bold text-slate-500">Total Menu</p>
-                    <p class="text-xl font-black text-slate-800 mt-1">{{ stats.menu_count }} item</p>
-                </div>
+                <StatCard
+                    title="Saldo Stand"
+                    :value="stand.balance"
+                    subtitle="Dapat Dicairkan"
+                    icon-bg="success"
+                >
+                    <template #icon>💰</template>
+                </StatCard>
+                <StatCard
+                    title="Omzet Hari Ini"
+                    :value="stats.today_revenue"
+                    subtitle="Penjualan Berjalan"
+                    icon-bg="brand"
+                >
+                    <template #icon>📈</template>
+                </StatCard>
+                <StatCard
+                    title="Pesanan Aktif"
+                    :value="stats.pending_orders"
+                    subtitle="Perlu Diproses"
+                    icon-bg="warning"
+                >
+                    <template #icon>⏳</template>
+                </StatCard>
+                <StatCard
+                    title="Total Menu"
+                    :value="`${stats.menu_count} Item`"
+                    subtitle="Katalog Makanan/Minuman"
+                    icon-bg="accent"
+                >
+                    <template #icon>🍱</template>
+                </StatCard>
             </div>
 
-            <!-- Daftar Pesanan -->
-            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+            <!-- Daftar Pesanan Masuk -->
+            <div class="space-y-3">
+                <div class="flex items-center justify-between px-1">
                     <div>
-                        <h3 class="font-extrabold text-slate-800">Pesanan Masuk Terbaru</h3>
-                        <p class="text-xs text-slate-500">Proses pesanan atau validasi pengambilan lewat Scan QR</p>
+                        <h3 class="text-base font-bold text-ink">Pesanan Masuk Terbaru</h3>
+                        <p class="text-xs text-ink-muted">Proses tahapan pesanan siswa secara langsung</p>
                     </div>
-                    <Link :href="route('kantin.menus')" class="text-xs font-bold text-amber-700 hover:underline">
-                        Kelola Menu &rarr;
+                    <Link :href="route('kantin.menus')">
+                        <AppButton variant="ghost" size="sm">
+                            Kelola Katalog Menu &rarr;
+                        </AppButton>
                     </Link>
                 </div>
 
-                <div v-if="orders.length === 0" class="p-8 text-center text-sm text-slate-500">
-                    Belum ada pesanan masuk untuk stand ini.
+                <div v-if="orders.length === 0" class="bg-surface rounded-card border border-line p-8 shadow-card">
+                    <EmptyState
+                        title="Belum Ada Pesanan"
+                        description="Belum ada pesanan siswa yang masuk ke stan ini hari ini."
+                    />
                 </div>
 
-                <div v-else class="divide-y divide-slate-100">
-                    <div v-for="order in orders" :key="order.id" class="p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                        <div class="space-y-1.5">
+                <div v-else class="space-y-3">
+                    <AppCard
+                        v-for="order in orders"
+                        :key="order.id"
+                        class="flex flex-col lg:flex-row lg:items-center justify-between gap-4"
+                    >
+                        <div class="space-y-2">
                             <div class="flex flex-wrap items-center gap-2">
-                                <span class="font-mono text-xs font-bold px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700">
+                                <span class="font-mono text-xs font-bold px-2 py-0.5 rounded-control bg-surface-raised border border-line text-ink">
                                     {{ order.qr_code_pickup }}
                                 </span>
-                                <span class="text-xs font-bold px-2.5 py-1 rounded-full border" :class="statusBadgeClass(order.status)">
+                                <StatusBadge :variant="mapOrderStatusVariant(order.status)" size="sm">
                                     {{ order.status }}
-                                </span>
-                                <span class="text-xs text-slate-400">{{ order.created_at }}</span>
+                                </StatusBadge>
+                                <span class="text-xs text-ink-muted">{{ order.created_at }}</span>
                             </div>
-                            <p class="font-bold text-slate-800 text-sm">
-                                {{ order.student_name }} <span class="text-xs font-medium text-slate-500">(Kelas {{ order.class_name }})</span>
+
+                            <p class="font-bold text-ink text-sm">
+                                {{ order.student_name }}
+                                <span class="text-xs font-normal text-ink-muted">(Kelas {{ order.class_name }})</span>
                             </p>
-                            <div class="flex flex-wrap gap-2 text-xs text-slate-600">
-                                <span v-for="item in order.items" :key="item.id" class="px-2 py-0.5 rounded bg-amber-50 border border-amber-100">
-                                    {{ item.menu_name }} x{{ item.quantity }}
+
+                            <div class="flex flex-wrap gap-1.5 text-xs">
+                                <span
+                                    v-for="item in order.items"
+                                    :key="item.id"
+                                    class="px-2 py-0.5 rounded-control bg-surface-raised border border-line text-ink"
+                                >
+                                    {{ item.menu_name }} <strong class="font-bold text-brand-700">x{{ item.quantity }}</strong>
                                 </span>
                             </div>
                         </div>
 
                         <div class="flex flex-col sm:flex-row sm:items-center gap-3 shrink-0">
-                            <p class="text-base font-black text-slate-900">{{ formatRupiah(order.total_price) }}</p>
+                            <span class="text-base font-black text-ink font-numeric">
+                                <MoneyText :amount="order.total_price" />
+                            </span>
+
                             <div v-if="order.status !== 'Selesai' && order.status !== 'Dibatalkan'" class="flex flex-wrap gap-1.5">
-                                <button
+                                <AppButton
                                     v-if="order.status === 'Menunggu Konfirmasi'"
-                                    type="button"
-                                    class="px-3 py-1.5 rounded-lg text-xs font-bold bg-sky-600 text-white hover:bg-sky-700"
+                                    variant="outline"
+                                    size="sm"
                                     @click="changeStatus(order.id, 'Sedang Dimasak')"
                                 >
-                                    Masak
-                                </button>
-                                <button
+                                    🍳 Masak
+                                </AppButton>
+                                <AppButton
                                     v-if="order.status === 'Menunggu Konfirmasi' || order.status === 'Sedang Dimasak'"
-                                    type="button"
-                                    class="px-3 py-1.5 rounded-lg text-xs font-bold bg-indigo-600 text-white hover:bg-indigo-700"
+                                    variant="secondary"
+                                    size="sm"
                                     @click="changeStatus(order.id, 'Siap Diambil')"
                                 >
-                                    Siap Diambil
-                                </button>
-                                <button
-                                    type="button"
-                                    class="px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 text-white hover:bg-emerald-700"
+                                    🔔 Siap Diambil
+                                </AppButton>
+                                <AppButton
+                                    variant="primary"
+                                    size="sm"
                                     @click="changeStatus(order.id, 'Selesai')"
                                 >
-                                    Selesai
-                                </button>
-                                <button
-                                    type="button"
-                                    class="px-3 py-1.5 rounded-lg text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100"
+                                    ✅ Selesai
+                                </AppButton>
+                                <AppButton
+                                    variant="ghost"
+                                    size="sm"
+                                    class="text-status-danger-fg"
                                     @click="changeStatus(order.id, 'Dibatalkan')"
                                 >
                                     Batalkan
-                                </button>
+                                </AppButton>
                             </div>
                         </div>
-                    </div>
+                    </AppCard>
                 </div>
             </div>
-        </div>
-    </CanteenLayout>
-</template>
 
+            <!-- Modal Ubah Info Stand -->
+            <Modal
+                :show="editStandModal"
+                title="Ubah Profil Stand Kantin"
+                max-width="md"
+                @close="editStandModal = false"
+            >
+                <form @submit.prevent="submitStand" class="p-6 space-y-4">
+                    <FormField label="Nama Stand" :error="standForm.errors.name" required>
+                        <AppInput
+                            v-model="standForm.name"
+                            placeholder="Contoh: Stand Barokah"
+                            required
+                        />
+                    </FormField>
+
+                    <FormField label="Deskripsi Singkat" :error="standForm.errors.description">
+                        <AppInput
+                            v-model="standForm.description"
+                            placeholder="Contoh: Menyediakan aneka nasi, snack sehat, dan jus"
+                        />
+                    </FormField>
+
+                    <div class="flex justify-end gap-2 pt-3 border-t border-line">
+                        <AppButton type="button" variant="ghost" size="sm" @click="editStandModal = false">
+                            Batal
+                        </AppButton>
+                        <AppButton type="submit" variant="primary" size="sm" :loading="standForm.processing">
+                            Simpan Perubahan
+                        </AppButton>
+                    </div>
+                </form>
+            </Modal>
+        </div>
+    </PortalShell>
+</template>

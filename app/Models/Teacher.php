@@ -11,7 +11,7 @@ class Teacher extends Model
 {
     use HasUuids;
 
-    protected $fillable = ['user_id', 'nip', 'signature', 'photo', 'face_data'];
+    protected $fillable = ['user_id', 'nip', 'position', 'signature', 'photo', 'face_data'];
 
     public function user(): BelongsTo
     {

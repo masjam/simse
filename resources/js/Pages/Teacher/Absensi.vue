@@ -1,7 +1,17 @@
 <script setup>
-import TeacherLayout from '@/Layouts/TeacherLayout.vue';
-import { Head, router, useForm, usePage } from '@inertiajs/vue3';
 import { ref, computed, watch } from 'vue';
+import { Head, router } from '@inertiajs/vue3';
+import PortalShell from '@/Layouts/PortalShell.vue';
+import PageHeader from '@/Components/ui/PageHeader.vue';
+import AppButton from '@/Components/ui/AppButton.vue';
+import AppSelect from '@/Components/ui/AppSelect.vue';
+import AppInput from '@/Components/ui/AppInput.vue';
+import SearchInput from '@/Components/ui/SearchInput.vue';
+import StatCard from '@/Components/ui/StatCard.vue';
+import EmptyState from '@/Components/ui/EmptyState.vue';
+import { useConfirm } from '@/composables/useConfirm';
+import { useToast } from '@/composables/useToast';
+import { useAutosave } from '@/composables/useAutosave';
 
 const props = defineProps({
     classes: { type: Array, default: () => [] },
@@ -10,7 +20,9 @@ const props = defineProps({
     students: { type: Array, default: () => [] },
 });
 
-const page = usePage();
+const confirm = useConfirm();
+const toast = useToast();
+
 const classList = computed(() => props.classes?.length ? props.classes : ['1 Brilliant', 'I OLYMPIAD']);
 const selectedClass = ref(props.selectedClass || classList.value[0] || '1 Brilliant');
 const selectedDate = ref(props.selectedDate || new Date().toISOString().slice(0, 10));
@@ -29,6 +41,8 @@ const onFilterChange = () => {
     }, { preserveState: true, replace: true });
 };
 
+const classOptions = computed(() => classList.value.map(c => ({ value: c, label: `Kelas ${c}` })));
+
 const filteredStudents = computed(() => {
     const q = searchQuery.value.toLowerCase();
     return studentList.value.filter(s =>
@@ -36,12 +50,16 @@ const filteredStudents = computed(() => {
     );
 });
 
-const setStatus = (student, status) => { 
-    student.status = status; 
+// One-tap attendance change
+const setStatus = (student, status) => {
+    student.status = status;
+    triggerAutosave();
 };
 
-const setAll = (status) => { 
-    studentList.value.forEach(s => s.status = status); 
+const setAllHadir = () => {
+    studentList.value.forEach(s => s.status = 'Hadir');
+    toast.info('Semua siswa ditandai Hadir.');
+    triggerAutosave();
 };
 
 const statHadir = computed(() => studentList.value.filter(s => s.status === 'Hadir').length);
@@ -50,16 +68,30 @@ const statSakit = computed(() => studentList.value.filter(s => s.status === 'Sak
 const statAlpa = computed(() => studentList.value.filter(s => s.status === 'Alpa').length);
 const statBelum = computed(() => studentList.value.filter(s => !s.status).length);
 
-const isSaving = ref(false);
+// Auto-save integration
+const { status: autosaveStatus, save: triggerAutosave } = useAutosave(async () => {
+    await window.axios.post(route('guru.absensi.store'), {
+        class_name: selectedClass.value,
+        date: selectedDate.value,
+        students: studentList.value.map(s => ({
+            id: s.id,
+            status: s.status || 'Hadir',
+            leave_reason: s.leave_reason || null,
+        })),
+    });
+}, { debounceMs: 1200 });
 
-const submitAbsensi = () => {
+const submitAbsensi = async () => {
     if (statBelum.value > 0) {
-        if (!confirm(`⚠️ Ada ${statBelum.value} siswa yang belum dipilih statusnya. Tetap simpan? (Siswa tanpa status akan ditandai Hadir)`)) {
-            return;
-        }
+        const agreed = await confirm.ask({
+            title: 'Konfirmasi Presensi',
+            message: `Terdapat ${statBelum.value} siswa yang belum dipilih statusnya. Siswa tanpa status akan otomatis ditandai Hadir. Simpan sekarang?`,
+            confirmLabel: 'Ya, Simpan',
+            variant: 'warning',
+        });
+        if (!agreed) return;
     }
 
-    isSaving.value = true;
     router.post(route('guru.absensi.store'), {
         class_name: selectedClass.value,
         date: selectedDate.value,
@@ -70,185 +102,139 @@ const submitAbsensi = () => {
         })),
     }, {
         preserveScroll: true,
-        onFinish: () => {
-            isSaving.value = false;
-        }
+        onSuccess: () => {
+            toast.success('Presensi siswa berhasil disimpan.');
+        },
     });
 };
 
-const statusBtns = [
-    { label: 'Hadir', value: 'Hadir', active: 'bg-emerald-500 text-white border-emerald-600 shadow-md shadow-emerald-200', inactive: 'bg-white text-slate-600 border-slate-200 hover:bg-emerald-50 hover:border-emerald-300' },
-    { label: 'Izin', value: 'Izin', active: 'bg-amber-500 text-white border-amber-600 shadow-md shadow-amber-200', inactive: 'bg-white text-slate-600 border-slate-200 hover:bg-amber-50 hover:border-amber-300' },
-    { label: 'Sakit', value: 'Sakit', active: 'bg-blue-500 text-white border-blue-600 shadow-md shadow-blue-200', inactive: 'bg-white text-slate-600 border-slate-200 hover:bg-blue-50 hover:border-blue-300' },
-    { label: 'Alpa', value: 'Alpa', active: 'bg-red-500 text-white border-red-600 shadow-md shadow-red-200', inactive: 'bg-white text-slate-600 border-slate-200 hover:bg-red-50 hover:border-red-300' },
+const statusOptions = [
+    { label: 'Hadir', value: 'Hadir', variant: 'success' },
+    { label: 'Izin', value: 'Izin', variant: 'info' },
+    { label: 'Sakit', value: 'Sakit', variant: 'warning' },
+    { label: 'Alpa', value: 'Alpa', variant: 'danger' },
 ];
 </script>
 
 <template>
-    <Head title="Absensi Kelas" />
-    <TeacherLayout>
-        <template #header-title><h1 class="text-lg font-bold text-slate-800">Presensi Kehadiran Siswa</h1></template>
-        <template #header-subtitle><p class="text-xs text-slate-500">SD Muhammadiyah Al Mujahidin Wonosari</p></template>
+    <Head title="Presensi Siswa" />
 
-        <div class="space-y-6">
-            <!-- Flash Message -->
-            <div v-if="page.props.flash?.success" class="p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 text-sm flex items-center justify-between shadow-sm">
-                <div class="flex items-center gap-2">
-                    <span class="text-lg">✅</span>
-                    <span class="font-semibold">{{ page.props.flash.success }}</span>
+    <PortalShell variant="sidebar" :autosave-status="autosaveStatus">
+        <template #header>
+            <PageHeader
+                title="Presensi Kehadiran Siswa"
+                description="Pencatatan Kehadiran Harian Kelas SD Muhammadiyah Al Mujahidin"
+            />
+        </template>
+
+        <div class="space-y-4">
+            <!-- 1. Stats Grid -->
+            <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                <StatCard title="Hadir" :value="statHadir" unit="Siswa" />
+                <StatCard title="Izin" :value="statIzin" unit="Siswa" />
+                <StatCard title="Sakit" :value="statSakit" unit="Siswa" />
+                <StatCard title="Alpa" :value="statAlpa" unit="Siswa" />
+                <StatCard title="Belum Diisi" :value="statBelum" unit="Siswa" />
+            </div>
+
+            <!-- 2. Filter & Bulk Action Bar -->
+            <div class="bg-surface rounded-card border border-line p-4 shadow-card flex flex-col md:flex-row items-end justify-between gap-3">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full md:w-auto flex-1">
+                    <div>
+                        <label for="select-class" class="block text-xs font-bold text-ink-muted mb-1">Pilih Rombel / Kelas</label>
+                        <AppSelect
+                            id="select-class"
+                            v-model="selectedClass"
+                            :options="classOptions"
+                            @change="onFilterChange"
+                        />
+                    </div>
+                    <div>
+                        <label for="select-date" class="block text-xs font-bold text-ink-muted mb-1">Tanggal Presensi</label>
+                        <AppInput
+                            id="select-date"
+                            v-model="selectedDate"
+                            type="date"
+                            @change="onFilterChange"
+                        />
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-ink-muted mb-1">Cari Siswa</label>
+                        <SearchInput
+                            v-model="searchQuery"
+                            placeholder="Ketik nama atau NISN..."
+                        />
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2 shrink-0 self-start sm:self-auto">
+                    <AppButton
+                        size="sm"
+                        variant="secondary"
+                        @click="setAllHadir"
+                    >
+                        ✓ Semua Hadir
+                    </AppButton>
+                    <AppButton
+                        size="sm"
+                        variant="primary"
+                        @click="submitAbsensi"
+                    >
+                        Simpan Presensi
+                    </AppButton>
                 </div>
             </div>
 
-            <!-- Class & Date Selector + Stats Card -->
-            <div class="bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-600 rounded-2xl p-6 text-white shadow-xl shadow-emerald-600/15 relative overflow-hidden">
-                <div class="absolute -right-16 -top-16 w-48 h-48 bg-white/10 rounded-full blur-2xl"></div>
-                <div class="relative z-10">
-                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-                        <div>
-                            <span class="inline-block px-2.5 py-1 bg-white/20 backdrop-blur-md rounded-md text-[11px] font-bold uppercase tracking-wider mb-2">
-                                Presensi Harian
+            <!-- 3. Students Attendance List -->
+            <div class="bg-surface rounded-card border border-line shadow-card overflow-hidden">
+                <div class="p-4 border-b border-line bg-surface-raised flex items-center justify-between">
+                    <div>
+                        <h3 class="text-sm font-bold text-ink">Daftar Kehadiran Siswa Kelas {{ selectedClass }}</h3>
+                        <p class="text-xs text-ink-muted">Satu ketukan tombol untuk mengubah status kehadiran siswa secara instan.</p>
+                    </div>
+                    <span class="text-xs font-bold font-mono text-ink">
+                        {{ filteredStudents.length }} Siswa
+                    </span>
+                </div>
+
+                <div v-if="filteredStudents.length === 0" class="p-6">
+                    <EmptyState
+                        title="Tidak Ada Siswa"
+                        description="Tidak ada data siswa yang cocok dengan filter atau pencarian saat ini."
+                    />
+                </div>
+                <div v-else class="divide-y divide-line">
+                    <div
+                        v-for="(student, idx) in filteredStudents"
+                        :key="student.id"
+                        class="p-3.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 hover:bg-surface-raised/40 transition-colors"
+                    >
+                        <div class="flex items-center gap-3 min-w-0">
+                            <span class="w-6 text-center font-mono text-xs font-bold text-ink-muted shrink-0">
+                                {{ idx + 1 }}
                             </span>
-                            <h2 class="text-2xl font-black">Rombel: {{ selectedClass }}</h2>
-                            <p class="text-emerald-100 text-xs mt-1">
-                                Tanggal: {{ new Date(selectedDate).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) }}
-                            </p>
-                        </div>
-                        <div class="flex flex-wrap items-center gap-2.5 bg-white/10 backdrop-blur-md p-2 rounded-xl border border-white/20">
-                            <div>
-                                <label class="text-[10px] text-white/80 block font-semibold mb-0.5">Pilih Kelas</label>
-                                <select v-model="selectedClass" @change="onFilterChange" class="bg-white text-slate-800 font-bold text-xs rounded-lg px-3 py-1.5 border-0 focus:ring-2 focus:ring-emerald-400">
-                                    <option v-for="cls in classList" :key="cls" :value="cls">{{ cls }}</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="text-[10px] text-white/80 block font-semibold mb-0.5">Tanggal</label>
-                                <input type="date" v-model="selectedDate" @change="onFilterChange" class="bg-white text-slate-800 font-bold text-xs rounded-lg px-3 py-1.5 border-0 focus:ring-2 focus:ring-emerald-400" />
+                            <div class="min-w-0">
+                                <h4 class="text-xs sm:text-sm font-bold text-ink truncate">{{ student.name }}</h4>
+                                <p class="text-[11px] text-ink-muted">NISN: {{ student.nisn || '-' }}</p>
                             </div>
                         </div>
-                    </div>
 
-                    <!-- Stats Row -->
-                    <div class="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
-                        <div class="bg-white/15 backdrop-blur-md rounded-xl p-3 border border-white/20 text-center">
-                            <div class="text-2xl font-black">{{ statHadir }}</div>
-                            <div class="text-[10px] uppercase font-bold text-emerald-100">Hadir</div>
-                        </div>
-                        <div class="bg-white/15 backdrop-blur-md rounded-xl p-3 border border-white/20 text-center">
-                            <div class="text-2xl font-black text-amber-200">{{ statIzin }}</div>
-                            <div class="text-[10px] uppercase font-bold text-emerald-100">Izin</div>
-                        </div>
-                        <div class="bg-white/15 backdrop-blur-md rounded-xl p-3 border border-white/20 text-center">
-                            <div class="text-2xl font-black text-blue-200">{{ statSakit }}</div>
-                            <div class="text-[10px] uppercase font-bold text-emerald-100">Sakit</div>
-                        </div>
-                        <div class="bg-white/15 backdrop-blur-md rounded-xl p-3 border border-white/20 text-center">
-                            <div class="text-2xl font-black text-rose-200">{{ statAlpa }}</div>
-                            <div class="text-[10px] uppercase font-bold text-emerald-100">Alpa</div>
-                        </div>
-                        <div class="bg-white/15 backdrop-blur-md rounded-xl p-3 border border-white/20 text-center col-span-2 sm:col-span-1">
-                            <div class="text-2xl font-black text-slate-200">{{ statBelum }}</div>
-                            <div class="text-[10px] uppercase font-bold text-emerald-100">Belum Diisi</div>
+                        <!-- One-tap buttons for Hadir, Izin, Sakit, Alpa -->
+                        <div class="flex flex-wrap items-center gap-1.5 self-start sm:self-auto">
+                            <AppButton
+                                v-for="opt in statusOptions"
+                                :key="opt.value"
+                                size="sm"
+                                :variant="student.status === opt.value ? 'primary' : 'secondary'"
+                                class="!px-3 !py-1 text-xs font-bold"
+                                @click="setStatus(student, opt.value)"
+                            >
+                                {{ opt.label }}
+                            </AppButton>
                         </div>
                     </div>
-                </div>
-            </div>
-
-            <!-- Toolbar (Quick Mark & Search) -->
-            <div class="bg-white rounded-xl border border-slate-200/80 shadow-sm p-4 flex flex-col md:flex-row justify-between items-center gap-4">
-                <div class="flex items-center gap-2 w-full md:w-auto">
-                    <span class="text-xs font-bold text-slate-500 whitespace-nowrap">Tandai Cepat:</span>
-                    <button @click="setAll('Hadir')" class="px-3 py-1.5 text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition">
-                        Semua Hadir
-                    </button>
-                    <button @click="setAll(null)" class="px-3 py-1.5 text-xs font-bold bg-slate-50 text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-100 transition">
-                        Reset
-                    </button>
-                </div>
-                <div class="flex items-center gap-3 w-full md:w-auto">
-                    <div class="relative w-full md:w-64">
-                        <input type="text" v-model="searchQuery" placeholder="Cari nama santri / NISN..."
-                               class="w-full pl-9 pr-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" />
-                        <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                    </div>
-                    <button @click="submitAbsensi" :disabled="isSaving"
-                            class="px-5 py-2 bg-emerald-600 text-white text-xs font-bold rounded-lg hover:bg-emerald-700 transition shadow-md shadow-emerald-600/20 whitespace-nowrap flex items-center gap-2 disabled:opacity-50">
-                        <svg v-if="!isSaving" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                        <span v-if="isSaving">Menyimpan...</span>
-                        <span v-else>Simpan Absensi</span>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Student Attendance Table -->
-            <div class="bg-white rounded-xl border border-slate-200/80 shadow-sm overflow-hidden">
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse">
-                        <thead>
-                            <tr class="bg-slate-50/80 border-b border-slate-200/80 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                                <th class="py-3.5 px-4 w-12 text-center">No</th>
-                                <th class="py-3.5 px-4">Nama Siswa / Santri</th>
-                                <th class="py-3.5 px-4">NISN</th>
-                                <th class="py-3.5 px-4 text-center">Status Kehadiran</th>
-                                <th class="py-3.5 px-4">Keterangan (Opsional)</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-100 text-sm">
-                            <tr v-for="(student, index) in filteredStudents" :key="student.id" class="hover:bg-slate-50/60 transition">
-                                <td class="py-3.5 px-4 text-center font-bold text-slate-400 text-xs">{{ index + 1 }}</td>
-                                <td class="py-3.5 px-4">
-                                    <div class="flex items-center gap-3">
-                                        <div class="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 text-white flex items-center justify-center text-xs font-bold shrink-0">
-                                            {{ student.name.charAt(0) }}
-                                        </div>
-                                        <div>
-                                            <span class="font-bold text-slate-800 block text-xs md:text-sm">{{ student.name }}</span>
-                                            <span class="text-[10px] text-slate-400 font-semibold">Jenis Kelamin: {{ student.gender === 'P' ? 'Perempuan' : 'Laki-laki' }}</span>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td class="py-3.5 px-4 font-mono text-xs text-slate-500">{{ student.nisn || '-' }}</td>
-                                <td class="py-3.5 px-4">
-                                    <div class="flex justify-center gap-1.5">
-                                        <button v-for="btn in statusBtns" :key="btn.value"
-                                                @click="setStatus(student, btn.value)"
-                                                :class="[
-                                                    student.status === btn.value ? btn.active : btn.inactive,
-                                                    'px-2.5 py-1 text-xs font-bold rounded-lg border transition'
-                                                ]">
-                                            {{ btn.label }}
-                                        </button>
-                                    </div>
-                                </td>
-                                <td class="py-3.5 px-4">
-                                    <input v-if="student.status && student.status !== 'Hadir'" 
-                                           type="text" v-model="student.leave_reason" 
-                                           placeholder="Alasan izin / sakit..." 
-                                           class="w-full text-xs px-2.5 py-1 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500" />
-                                    <span v-else class="text-xs text-slate-300 italic">-</span>
-                                </td>
-                            </tr>
-                            <tr v-if="filteredStudents.length === 0">
-                                <td colspan="5" class="py-8 text-center text-slate-400 text-xs">
-                                    Tidak ada data siswa ditemukan untuk kelas ini.
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-
-                <!-- Footer Save Action -->
-                <div class="p-4 bg-slate-50/80 border-t border-slate-200/80 flex justify-between items-center">
-                    <p class="text-xs text-slate-500 font-medium">
-                        Total santri: <strong class="text-slate-800">{{ studentList.length }}</strong>
-                    </p>
-                    <button @click="submitAbsensi" :disabled="isSaving"
-                            class="px-6 py-2.5 bg-emerald-600 text-white text-xs font-bold rounded-lg hover:bg-emerald-700 transition shadow-md shadow-emerald-600/20 flex items-center gap-2 disabled:opacity-50">
-                        <svg v-if="!isSaving" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                        <span v-if="isSaving">Menyimpan...</span>
-                        <span v-else>Simpan & Kirim Laporan</span>
-                    </button>
                 </div>
             </div>
         </div>
-    </TeacherLayout>
+    </PortalShell>
 </template>

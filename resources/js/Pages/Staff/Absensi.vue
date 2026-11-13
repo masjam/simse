@@ -1,7 +1,13 @@
 <script setup>
-import StaffLayout from '@/Layouts/StaffLayout.vue';
 import { Head, useForm } from '@inertiajs/vue3';
 import { computed, onMounted, ref } from 'vue';
+import PortalShell from '@/Layouts/PortalShell.vue';
+import PageHeader from '@/Components/ui/PageHeader.vue';
+import AppCard from '@/Components/ui/AppCard.vue';
+import AppButton from '@/Components/ui/AppButton.vue';
+import StatusBadge from '@/Components/ui/StatusBadge.vue';
+import DataTable from '@/Components/ui/DataTable.vue';
+import { useToast } from '@/composables/useToast';
 
 const props = defineProps({
     todayAttendance: { type: Object, default: null },
@@ -9,6 +15,7 @@ const props = defineProps({
     history: { type: Array, required: true },
 });
 
+const toast = useToast();
 const currentLat = ref(null);
 const currentLng = ref(null);
 const locationAccuracy = ref(null);
@@ -24,9 +31,7 @@ const form = useForm({
 
 // Hitung jarak Haversine (meter)
 const distanceMeters = computed(() => {
-    if (currentLat.value === null || currentLng.value === null) {
-        return null;
-    }
+    if (currentLat.value === null || currentLng.value === null) return null;
     const R = 6371000;
     const dLat = (props.schoolGeo.latitude - currentLat.value) * (Math.PI / 180);
     const dLon = (props.schoolGeo.longitude - currentLng.value) * (Math.PI / 180);
@@ -40,15 +45,13 @@ const distanceMeters = computed(() => {
 });
 
 const isWithinRadius = computed(() => {
-    if (distanceMeters.value === null) {
-        return false;
-    }
+    if (distanceMeters.value === null) return false;
     return distanceMeters.value <= props.schoolGeo.radius_meters;
 });
 
 const detectLocation = () => {
     if (!navigator.geolocation) {
-        locationError.value = 'Browser Anda tidak mendukung deteksi lokasi (Geolocation).';
+        locationError.value = 'Peramban Anda tidak mendukung deteksi geolokasi (GPS).';
         return;
     }
     detectingLocation.value = true;
@@ -63,9 +66,9 @@ const detectLocation = () => {
             form.longitude = pos.coords.longitude;
             detectingLocation.value = false;
         },
-        (err) => {
+        () => {
             detectingLocation.value = false;
-            locationError.value = 'Izin lokasi ditolak atau tidak dapat mendeteksi GPS. Mohon izinkan akses lokasi di browser.';
+            locationError.value = 'Izin lokasi ditolak atau tidak dapat mendeteksi GPS. Mohon izinkan akses lokasi pada peramban.';
         },
         { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
     );
@@ -84,129 +87,144 @@ const submitAttendance = (type) => {
         preserveScroll: true,
         onSuccess: () => {
             detectLocation();
+            toast.success(type === 'check_in' ? 'Presensi masuk berhasil dicatat!' : 'Presensi pulang berhasil dicatat!');
         },
     });
 };
+
+const historyColumns = [
+    { key: 'date', label: 'Tanggal' },
+    { key: 'time_in', label: 'Jam Masuk' },
+    { key: 'time_out', label: 'Jam Pulang' },
+    { key: 'status', label: 'Status Kehadiran', class: 'text-center' },
+    { key: 'coordinates', label: 'Koordinat GPS', class: 'text-right' },
+];
 </script>
 
 <template>
     <Head title="Presensi Pegawai (Geolokasi)" />
+    <PortalShell variant="sidebar">
+        <div class="space-y-6">
+            <PageHeader
+                title="Presensi Pegawai Berbasis Lokasi (GPS)"
+                :subtitle="`${schoolGeo.school_name} • Batas radius kehadiran: ${schoolGeo.radius_meters} meter`"
+            />
 
-    <StaffLayout>
-        <template #header-title>
-            <h1 class="text-2xl font-black text-slate-800">Presensi Pegawai Berbasis Lokasi (GPS)</h1>
-        </template>
-        <template #header-subtitle>
-            <p class="text-slate-500 font-medium">{{ schoolGeo.school_name }} &middot; Batas radius: {{ schoolGeo.radius_meters }} meter</p>
-        </template>
-
-        <div class="grid lg:grid-cols-3 gap-6">
-            <!-- Kartu Presensi Hari Ini -->
-            <div class="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-5 h-fit">
-                <div class="text-center space-y-1">
-                    <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Presensi Pegawai &middot; Hari Ini</p>
-                    <h2 class="text-2xl font-black text-slate-800">
-                        {{ new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) }}
-                    </h2>
-                </div>
-
-                <!-- Status Radius GPS -->
-                <div class="rounded-2xl border p-4 space-y-2 text-center" :class="isWithinRadius ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-rose-50 border-rose-200 text-rose-800'">
-                    <div class="flex items-center justify-center gap-2 font-black text-sm">
-                        <span class="w-2.5 h-2.5 rounded-full" :class="isWithinRadius ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'"></span>
-                        <span>{{ isWithinRadius ? 'Dalam Radius Sekolah' : 'Di Luar Radius Sekolah' }}</span>
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Kartu Presensi Hari Ini -->
+                <AppCard class="space-y-4 h-fit">
+                    <div class="text-center space-y-1 pb-2 border-b border-line">
+                        <p class="text-[10px] font-bold uppercase tracking-wider text-ink-muted">
+                            Presensi Staf • Hari Ini
+                        </p>
+                        <h3 class="text-lg font-bold text-ink">
+                            {{ new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) }}
+                        </h3>
                     </div>
-                    <p class="text-xs">
-                        Jarak ke sekolah: <strong>{{ distanceMeters !== null ? `${distanceMeters} m` : 'Mendeteksi...' }}</strong> (Maks. {{ schoolGeo.radius_meters }} m)
-                    </p>
-                    <button type="button" class="text-[11px] font-bold text-slate-600 underline hover:text-slate-900" @click="detectLocation">
-                        {{ detectingLocation ? 'Memperbarui GPS...' : 'Segarkan Posisi GPS' }}
-                    </button>
-                </div>
 
-                <div v-if="locationError" class="p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs font-semibold text-amber-800">
-                    {{ locationError }}
-                </div>
-
-                <!-- Info Kehadiran Saat Ini -->
-                <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-xs space-y-1.5">
-                    <div class="flex justify-between">
-                        <span class="text-slate-500">Status Masuk:</span>
-                        <strong class="text-slate-800">{{ todayAttendance?.time_in ? `Hadir (${todayAttendance.time_in})` : 'Belum Masuk' }}</strong>
-                    </div>
-                    <div class="flex justify-between">
-                        <span class="text-slate-500">Status Pulang:</span>
-                        <strong class="text-slate-800">{{ todayAttendance?.time_out ? `Pulang (${todayAttendance.time_out})` : 'Belum Pulang' }}</strong>
-                    </div>
-                </div>
-
-                <!-- Tombol Aksi Masuk / Pulang -->
-                <div class="space-y-2">
-                    <button
-                        type="button"
-                        :disabled="form.processing || !isWithinRadius || (todayAttendance && todayAttendance.time_in)"
-                        class="w-full py-3.5 rounded-xl font-extrabold text-sm transition text-white"
-                        :class="isWithinRadius && (!todayAttendance || !todayAttendance.time_in) ? 'bg-emerald-600 hover:bg-emerald-700 shadow-md' : 'bg-slate-200 text-slate-400 cursor-not-allowed'"
-                        @click="submitAttendance('check_in')"
+                    <!-- Status Radius GPS -->
+                    <div
+                        class="rounded-control border p-4 space-y-2 text-center"
+                        :class="isWithinRadius ? 'bg-status-success-bg border-status-success-line text-status-success-fg' : 'bg-status-danger-bg border-status-danger-line text-status-danger-fg'"
                     >
-                        {{ todayAttendance?.time_in ? 'Sudah Presensi Masuk' : 'Presensi Masuk (Check-In)' }}
-                    </button>
+                        <div class="flex items-center justify-center gap-2 font-black text-xs">
+                            <span class="w-2.5 h-2.5 rounded-full" :class="isWithinRadius ? 'bg-status-success-fg animate-pulse' : 'bg-status-danger-fg'"></span>
+                            <span>{{ isWithinRadius ? 'Dalam Radius Sekolah' : 'Di Luar Radius Sekolah' }}</span>
+                        </div>
+                        <p class="text-xs">
+                            Jarak ke sekolah: <strong>{{ distanceMeters !== null ? `${distanceMeters} m` : 'Mendeteksi...' }}</strong> (Maks. {{ schoolGeo.radius_meters }} m)
+                        </p>
+                        <AppButton
+                            variant="ghost"
+                            size="sm"
+                            class="!p-0 underline text-[11px]"
+                            @click="detectLocation"
+                        >
+                            {{ detectingLocation ? 'Memperbarui GPS...' : 'Segarkan Posisi GPS' }}
+                        </AppButton>
+                    </div>
 
-                    <button
-                        type="button"
-                        :disabled="form.processing || !isWithinRadius || !todayAttendance || !todayAttendance.time_in || todayAttendance.time_out"
-                        class="w-full py-3.5 rounded-xl font-extrabold text-sm transition text-white"
-                        :class="isWithinRadius && todayAttendance && todayAttendance.time_in && !todayAttendance.time_out ? 'bg-indigo-600 hover:bg-indigo-700 shadow-md' : 'bg-slate-200 text-slate-400 cursor-not-allowed'"
-                        @click="submitAttendance('check_out')"
+                    <div v-if="locationError" class="p-3 rounded-control bg-status-warning-bg text-status-warning-fg border border-status-warning-line text-xs font-semibold">
+                        {{ locationError }}
+                    </div>
+
+                    <!-- Info Kehadiran Saat Ini -->
+                    <div class="p-3.5 rounded-control bg-surface-raised border border-line text-xs space-y-1.5">
+                        <div class="flex justify-between">
+                            <span class="text-ink-muted">Status Masuk:</span>
+                            <strong class="text-ink">{{ todayAttendance?.time_in ? `Hadir (${todayAttendance.time_in})` : 'Belum Masuk' }}</strong>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-ink-muted">Status Pulang:</span>
+                            <strong class="text-ink">{{ todayAttendance?.time_out ? `Pulang (${todayAttendance.time_out})` : 'Belum Pulang' }}</strong>
+                        </div>
+                    </div>
+
+                    <!-- Tombol Aksi Masuk / Pulang -->
+                    <div class="space-y-2 pt-2">
+                        <AppButton
+                            variant="primary"
+                            size="lg"
+                            class="w-full shadow-card"
+                            :disabled="form.processing || !isWithinRadius || (todayAttendance && Boolean(todayAttendance.time_in))"
+                            :loading="form.processing && form.type === 'check_in'"
+                            @click="submitAttendance('check_in')"
+                        >
+                            {{ todayAttendance?.time_in ? 'Sudah Presensi Masuk' : '📍 Presensi Masuk (Check-In)' }}
+                        </AppButton>
+
+                        <AppButton
+                            variant="secondary"
+                            size="lg"
+                            class="w-full shadow-card"
+                            :disabled="form.processing || !isWithinRadius || !todayAttendance || !todayAttendance.time_in || Boolean(todayAttendance.time_out)"
+                            :loading="form.processing && form.type === 'check_out'"
+                            @click="submitAttendance('check_out')"
+                        >
+                            {{ todayAttendance?.time_out ? 'Sudah Presensi Pulang' : '🏠 Presensi Pulang (Check-Out)' }}
+                        </AppButton>
+                    </div>
+                </AppCard>
+
+                <!-- Tabel Riwayat Presensi -->
+                <div class="lg:col-span-2 space-y-3">
+                    <h3 class="text-base font-bold text-ink px-1">
+                        Riwayat Presensi Pegawai (30 Hari Terakhir)
+                    </h3>
+                    <DataTable
+                        :columns="historyColumns"
+                        :items="history"
+                        empty-title="Belum Ada Riwayat"
+                        empty-message="Belum ada catatan presensi pegawai yang terekam pada 30 hari terakhir."
                     >
-                        {{ todayAttendance?.time_out ? 'Sudah Presensi Pulang' : 'Presensi Pulang (Check-Out)' }}
-                    </button>
-                </div>
-            </div>
+                        <template #cell(date)="{ value }">
+                            <strong class="font-bold text-xs text-ink">{{ value }}</strong>
+                        </template>
 
-            <!-- Tabel Riwayat Presensi -->
-            <div class="lg:col-span-2 bg-white border border-slate-200 rounded-3xl shadow-sm overflow-hidden">
-                <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-                    <h2 class="font-extrabold text-slate-800">Riwayat Presensi Pegawai (30 Hari Terakhir)</h2>
-                    <span class="text-xs text-slate-400 font-semibold">{{ history.length }} Catatan</span>
-                </div>
+                        <template #cell(time_in)="{ value }">
+                            <span class="text-xs text-ink font-numeric">{{ value || '-' }}</span>
+                        </template>
 
-                <div v-if="history.length === 0" class="p-8 text-center text-sm text-slate-500">
-                    Belum ada riwayat presensi yang tercatat.
-                </div>
+                        <template #cell(time_out)="{ value }">
+                            <span class="text-xs text-ink font-numeric">{{ value || '-' }}</span>
+                        </template>
 
-                <div v-else class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse text-sm">
-                        <thead class="bg-slate-50 text-xs font-bold text-slate-500 uppercase">
-                            <tr>
-                                <th class="px-6 py-3">Tanggal</th>
-                                <th class="px-6 py-3">Jam Masuk</th>
-                                <th class="px-6 py-3">Jam Pulang</th>
-                                <th class="px-6 py-3">Status</th>
-                                <th class="px-6 py-3">Koordinat GPS</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-100">
-                            <tr v-for="item in history" :key="item.id" class="hover:bg-slate-50/70">
-                                <td class="px-6 py-3.5 font-bold text-slate-800">{{ item.date }}</td>
-                                <td class="px-6 py-3.5 font-semibold text-slate-700">{{ item.time_in }}</td>
-                                <td class="px-6 py-3.5 font-semibold text-slate-700">{{ item.time_out }}</td>
-                                <td class="px-6 py-3.5">
-                                    <span
-                                        class="px-2.5 py-0.5 rounded-full text-xs font-bold"
-                                        :class="item.status === 'Hadir' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'"
-                                    >
-                                        {{ item.status }}
-                                    </span>
-                                </td>
-                                <td class="px-6 py-3.5 font-mono text-xs text-slate-400">
-                                    {{ item.location_lat && item.location_lng ? `${Number(item.location_lat).toFixed(4)}, ${Number(item.location_lng).toFixed(4)}` : '-' }}
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
+                        <template #cell(status)="{ value }">
+                            <div class="flex justify-center">
+                                <StatusBadge :variant="value === 'Hadir' ? 'success' : 'warning'" size="sm">
+                                    {{ value }}
+                                </StatusBadge>
+                            </div>
+                        </template>
+
+                        <template #cell(coordinates)="{ item }">
+                            <span class="font-mono text-xs text-ink-muted">
+                                {{ item.location_lat && item.location_lng ? `${Number(item.location_lat).toFixed(4)}, ${Number(item.location_lng).toFixed(4)}` : '-' }}
+                            </span>
+                        </template>
+                    </DataTable>
                 </div>
             </div>
         </div>
-    </StaffLayout>
+    </PortalShell>
 </template>

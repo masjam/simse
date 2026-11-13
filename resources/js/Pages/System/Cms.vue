@@ -1,7 +1,22 @@
 <script setup>
 import { ref } from 'vue';
 import { Head, router, useForm } from '@inertiajs/vue3';
-import AdminLayout from '@/Layouts/AdminLayout.vue';
+import PortalShell from '@/Layouts/PortalShell.vue';
+import PageHeader from '@/Components/ui/PageHeader.vue';
+import StatCard from '@/Components/ui/StatCard.vue';
+import AppCard from '@/Components/ui/AppCard.vue';
+import AppButton from '@/Components/ui/AppButton.vue';
+import SearchInput from '@/Components/ui/SearchInput.vue';
+import StatusBadge from '@/Components/ui/StatusBadge.vue';
+import Modal from '@/Components/ui/Modal.vue';
+import FormField from '@/Components/ui/FormField.vue';
+import AppInput from '@/Components/ui/AppInput.vue';
+import AppSelect from '@/Components/ui/AppSelect.vue';
+import AppCheckbox from '@/Components/ui/AppCheckbox.vue';
+import AppTextarea from '@/Components/ui/AppTextarea.vue';
+import EmptyState from '@/Components/ui/EmptyState.vue';
+import { useConfirm } from '@/composables/useConfirm';
+import { useToast } from '@/composables/useToast';
 
 const props = defineProps({
     posts: {
@@ -21,6 +36,9 @@ const props = defineProps({
         required: true,
     },
 });
+
+const confirm = useConfirm();
+const toast = useToast();
 
 const search = ref(props.filters.search || '');
 const category = ref(props.filters.category || 'all');
@@ -46,6 +64,8 @@ const form = useForm({
     is_published: true,
 });
 
+const categoryOptions = props.categories.map((c) => ({ value: c, label: c }));
+
 const openCreateModal = () => {
     editingPost.value = null;
     form.reset();
@@ -62,7 +82,7 @@ const openEditModal = (post) => {
     form.category = post.category || 'Berita';
     form.content = post.content;
     form.image = post.image || '';
-    form.is_published = post.is_published;
+    form.is_published = Boolean(post.is_published);
     showModal.value = true;
 };
 
@@ -70,12 +90,14 @@ const submitForm = () => {
     if (editingPost.value) {
         form.put(route('sistem.website.update', editingPost.value.id), {
             onSuccess: () => {
+                toast.success('Artikel berhasil diperbarui.');
                 showModal.value = false;
             },
         });
     } else {
         form.post(route('sistem.website.store'), {
             onSuccess: () => {
+                toast.success('Artikel baru berhasil diterbitkan.');
                 showModal.value = false;
             },
         });
@@ -85,13 +107,22 @@ const submitForm = () => {
 const togglePublish = (post) => {
     router.patch(route('sistem.website.toggle', post.id), {}, {
         preserveScroll: true,
+        onSuccess: () => toast.success('Status publikasi berhasil diubah.'),
     });
 };
 
-const deletePost = (post) => {
-    if (confirm(`Hapus artikel "${post.title}"?`)) {
+const deletePost = async (post) => {
+    const ok = await confirm({
+        title: 'Hapus Artikel',
+        message: `Apakah Anda yakin ingin menghapus artikel "${post.title}"? Tindakan ini tidak dapat dibatalkan.`,
+        confirmText: 'Hapus Artikel',
+        variant: 'danger',
+    });
+
+    if (ok) {
         router.delete(route('sistem.website.destroy', post.id), {
             preserveScroll: true,
+            onSuccess: () => toast.success('Artikel berhasil dihapus.'),
         });
     }
 };
@@ -100,243 +131,192 @@ const deletePost = (post) => {
 <template>
     <Head title="CMS Website & Artikel - Admin SIMSE" />
 
-    <AdminLayout>
-        <template #header-title>CMS Website & Berita Sekolah</template>
-        <template #header-subtitle>Kelola publikasi warta, pengumuman, dan artikel untuk landing page resmi</template>
+    <PortalShell variant="sidebar">
+        <div class="space-y-6 max-w-7xl">
+            <PageHeader
+                title="CMS Website & Berita Sekolah"
+                subtitle="Kelola publikasi warta, pengumuman, dan artikel untuk landing page resmi"
+            >
+                <template #actions>
+                    <AppButton variant="primary" size="sm" @click="openCreateModal">
+                        + Tulis Artikel Baru
+                    </AppButton>
+                </template>
+            </PageHeader>
 
-        <div class="space-y-6">
-            <!-- STATS CARDS -->
+            <!-- Stats KPI -->
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div class="p-5 rounded-2xl bg-slate-900 border border-slate-800">
-                    <p class="text-xs text-slate-400 font-medium">Total Seluruh Konten</p>
-                    <p class="text-2xl font-bold text-white mt-1">{{ stats.total }}</p>
-                </div>
-                <div class="p-5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20">
-                    <p class="text-xs text-emerald-400 font-medium">Tayang di Website (Published)</p>
-                    <p class="text-2xl font-bold text-emerald-300 mt-1">{{ stats.published }}</p>
-                </div>
-                <div class="p-5 rounded-2xl bg-amber-500/10 border border-amber-500/20">
-                    <p class="text-xs text-amber-400 font-medium">Draf (Belum Tayang)</p>
-                    <p class="text-2xl font-bold text-amber-300 mt-1">{{ stats.draft }}</p>
-                </div>
+                <StatCard
+                    title="Total Seluruh Konten"
+                    :value="stats.total"
+                    subtitle="Semua kategori"
+                    icon-bg="brand"
+                />
+                <StatCard
+                    title="Tayang (Published)"
+                    :value="stats.published"
+                    subtitle="Tampil di landing page"
+                    icon-bg="success"
+                />
+                <StatCard
+                    title="Draf (Belum Tayang)"
+                    :value="stats.draft"
+                    subtitle="Menunggu publikasi"
+                    icon-bg="warning"
+                />
             </div>
 
-            <!-- ACTIONS & FILTERS -->
-            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-                <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-                    <button 
+            <!-- Filters Bar -->
+            <AppCard class="flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div class="flex flex-wrap items-center gap-1.5 w-full sm:w-auto">
+                    <AppButton
+                        size="sm"
+                        :variant="category === 'all' ? 'primary' : 'ghost'"
                         @click="category = 'all'; applyFilter()"
-                        type="button"
-                        class="px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
-                        :class="category === 'all' ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-400 hover:text-white'"
                     >
                         Semua Kategori
-                    </button>
-                    <button 
-                        v-for="cat in categories" 
+                    </AppButton>
+                    <AppButton
+                        v-for="cat in categories"
                         :key="cat"
+                        size="sm"
+                        :variant="category === cat ? 'primary' : 'ghost'"
                         @click="category = cat; applyFilter()"
-                        type="button"
-                        class="px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
-                        :class="category === cat ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-400 hover:text-white'"
                     >
                         {{ cat }}
-                    </button>
+                    </AppButton>
                 </div>
 
-                <div class="flex items-center gap-3 w-full sm:w-auto">
-                    <div class="flex items-center gap-2">
-                        <input 
-                            v-model="search"
-                            @keyup.enter="applyFilter"
-                            type="text" 
-                            placeholder="Cari judul artikel..."
-                            class="px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                        />
-                        <button 
-                            @click="applyFilter" 
-                            type="button"
-                            class="p-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white"
-                        >
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-                        </button>
-                    </div>
+                <div class="flex items-center gap-2 w-full sm:w-72">
+                    <SearchInput
+                        v-model="search"
+                        placeholder="Cari judul artikel..."
+                        @search="applyFilter"
+                    />
+                </div>
+            </AppCard>
 
-                    <button 
-                        @click="openCreateModal"
-                        type="button"
-                        class="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white text-xs font-bold shadow-lg shadow-emerald-500/20 flex items-center gap-1.5 whitespace-nowrap"
+            <!-- Posts List -->
+            <AppCard padding="none">
+                <div v-if="!posts.data || posts.data.length === 0" class="p-8">
+                    <EmptyState
+                        title="Belum ada artikel"
+                        description="Belum ada artikel atau berita yang ditambahkan untuk filter ini."
+                    />
+                </div>
+                <div v-else class="divide-y divide-line">
+                    <div
+                        v-for="post in posts.data"
+                        :key="post.id"
+                        class="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 hover:bg-surface-raised transition-colors"
                     >
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
-                        <span>Tulis Artikel</span>
-                    </button>
-                </div>
-            </div>
+                        <div class="space-y-1 flex-1 min-w-0">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span class="font-bold text-sm text-ink truncate">{{ post.title }}</span>
+                                <StatusBadge
+                                    variant="brand"
+                                    :text="post.category"
+                                    size="sm"
+                                />
+                                <StatusBadge
+                                    :variant="post.is_published ? 'success' : 'warning'"
+                                    :text="post.is_published ? 'Tayang' : 'Draf'"
+                                    size="sm"
+                                />
+                            </div>
+                            <p class="text-xs text-ink-muted font-numeric">/{{ post.slug }} • Diperbarui {{ post.updated_at }}</p>
+                        </div>
 
-            <!-- POSTS TABLE -->
-            <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-xs text-slate-300">
-                        <thead class="bg-slate-950 text-slate-400 font-semibold border-b border-slate-800">
-                            <tr>
-                                <th class="px-4 py-3.5">Judul Artikel</th>
-                                <th class="px-4 py-3.5">Kategori</th>
-                                <th class="px-4 py-3.5 text-center">Status</th>
-                                <th class="px-4 py-3.5">Terakhir Update</th>
-                                <th class="px-4 py-3.5 text-right">Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-800/60">
-                            <tr v-for="post in posts.data" :key="post.id" class="hover:bg-slate-800/40 transition-colors">
-                                <td class="px-4 py-3">
-                                    <p class="font-bold text-white text-sm line-clamp-1">{{ post.title }}</p>
-                                    <p class="text-[11px] text-slate-500 font-mono">/{{ post.slug }}</p>
-                                </td>
-                                <td class="px-4 py-3">
-                                    <span 
-                                        class="px-2.5 py-0.5 rounded-full text-[10px] font-bold border"
-                                        :class="{
-                                            'bg-emerald-500/10 text-emerald-400 border-emerald-500/20': post.category === 'Berita',
-                                            'bg-teal-500/10 text-teal-400 border-teal-500/20': post.category === 'Pengumuman',
-                                            'bg-amber-500/10 text-amber-400 border-amber-500/20': post.category === 'Prestasi',
-                                            'bg-purple-500/10 text-purple-400 border-purple-500/20': post.category === 'Artikel',
-                                        }"
-                                    >
-                                        {{ post.category }}
-                                    </span>
-                                </td>
-                                <td class="px-4 py-3 text-center">
-                                    <button 
-                                        @click="togglePublish(post)"
-                                        type="button"
-                                        class="px-2.5 py-1 rounded-lg text-[10px] font-bold border transition-all"
-                                        :class="post.is_published ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30' : 'bg-slate-800 text-slate-400 border-slate-700 hover:bg-emerald-500/10 hover:text-emerald-400'"
-                                        title="Klik untuk ubah status"
-                                    >
-                                        {{ post.is_published ? '✓ Tayang' : 'Draft' }}
-                                    </button>
-                                </td>
-                                <td class="px-4 py-3 text-slate-400 text-[11px]">
-                                    {{ post.updated_at }}
-                                </td>
-                                <td class="px-4 py-3 text-right">
-                                    <div class="flex items-center justify-end gap-2">
-                                        <button 
-                                            @click="openEditModal(post)"
-                                            type="button"
-                                            class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs transition-colors"
-                                        >
-                                            Edit
-                                        </button>
-                                        <button 
-                                            @click="deletePost(post)"
-                                            type="button"
-                                            class="px-2.5 py-1 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 text-xs transition-colors"
-                                        >
-                                            Hapus
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                            <tr v-if="posts.data.length === 0">
-                                <td colspan="5" class="px-4 py-8 text-center text-slate-500">
-                                    Belum ada artikel yang ditambahkan.
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <!-- CREATE / EDIT MODAL -->
-        <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-            <div class="bg-slate-900 border border-slate-800 rounded-3xl max-w-xl w-full p-6 shadow-2xl space-y-5">
-                <div class="flex items-center justify-between border-b border-slate-800 pb-3">
-                    <h3 class="text-base font-bold text-white">
-                        {{ editingPost ? 'Edit Artikel Website' : 'Tulis Artikel / Berita Baru' }}
-                    </h3>
-                    <button @click="showModal = false" class="text-slate-400 hover:text-white">✕</button>
-                </div>
-
-                <form @submit.prevent="submitForm" class="space-y-4">
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-300 mb-1">Judul Artikel *</label>
-                        <input 
-                            v-model="form.title" 
-                            type="text" 
-                            required 
-                            placeholder="Contoh: Siswa SDAM Raih Juara 1 Olimpiade Sains Nasional"
-                            class="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                        />
-                        <p v-if="form.errors.title" class="text-xs text-red-400 mt-1">{{ form.errors.title }}</p>
+                        <div class="flex items-center gap-2 shrink-0">
+                            <AppButton
+                                variant="ghost"
+                                size="sm"
+                                @click="togglePublish(post)"
+                            >
+                                {{ post.is_published ? 'Tarik Draf' : 'Tayangkan' }}
+                            </AppButton>
+                            <AppButton
+                                variant="secondary"
+                                size="sm"
+                                @click="openEditModal(post)"
+                            >
+                                Edit
+                            </AppButton>
+                            <AppButton
+                                variant="danger"
+                                size="sm"
+                                @click="deletePost(post)"
+                            >
+                                Hapus
+                            </AppButton>
+                        </div>
                     </div>
+                </div>
+            </AppCard>
+
+            <!-- Create / Edit Modal -->
+            <Modal
+                :show="showModal"
+                :title="editingPost ? 'Edit Artikel Website' : 'Tulis Artikel / Berita Baru'"
+                @close="showModal = false"
+            >
+                <form @submit.prevent="submitForm" class="space-y-4">
+                    <FormField label="Judul Artikel" :error="form.errors.title" required>
+                        <AppInput
+                            v-model="form.title"
+                            placeholder="Contoh: Siswa SDAM Raih Juara 1 Olimpiade Sains"
+                            required
+                        />
+                    </FormField>
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-300 mb-1">Kategori *</label>
-                            <select 
-                                v-model="form.category" 
-                                required 
-                                class="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                            >
-                                <option v-for="cat in categories" :key="cat" :value="cat">{{ cat }}</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-300 mb-1">Status Publikasi</label>
-                            <label class="flex items-center gap-2 mt-2 cursor-pointer">
-                                <input 
-                                    v-model="form.is_published" 
-                                    type="checkbox" 
-                                    class="w-4 h-4 rounded text-emerald-600 bg-slate-950 border-slate-800 focus:ring-emerald-500"
-                                />
-                                <span class="text-xs text-slate-300">Tayangkan langsung ke publik</span>
-                            </label>
+                        <FormField label="Kategori" :error="form.errors.category" required>
+                            <AppSelect
+                                v-model="form.category"
+                                :options="categoryOptions"
+                                required
+                            />
+                        </FormField>
+
+                        <div class="pt-6">
+                            <AppCheckbox
+                                v-model="form.is_published"
+                                label="Tayangkan langsung ke publik"
+                            />
                         </div>
                     </div>
 
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-300 mb-1">URL Gambar Cover (Opsional)</label>
-                        <input 
-                            v-model="form.image" 
-                            type="url" 
+                    <FormField label="URL Gambar Cover (Opsional)" :error="form.errors.image">
+                        <AppInput
+                            v-model="form.image"
+                            type="url"
                             placeholder="https://images.unsplash.com/..."
-                            class="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                         />
-                    </div>
+                    </FormField>
 
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-300 mb-1">Konten / Isi Artikel *</label>
-                        <textarea 
-                            v-model="form.content" 
-                            rows="6" 
-                            required 
-                            placeholder="Tulis narasi lengkap berita, prestasi, atau pengumuman sekolah..."
-                            class="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                        ></textarea>
-                        <p v-if="form.errors.content" class="text-xs text-red-400 mt-1">{{ form.errors.content }}</p>
-                    </div>
+                    <FormField label="Konten / Isi Artikel" :error="form.errors.content" required>
+                        <AppTextarea
+                            v-model="form.content"
+                            :rows="6"
+                            placeholder="Tulis narasi lengkap berita atau artikel..."
+                            required
+                        />
+                    </FormField>
 
-                    <div class="flex justify-end gap-2 pt-3 border-t border-slate-800">
-                        <button 
-                            @click="showModal = false" 
-                            type="button" 
-                            class="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-medium hover:bg-slate-700"
-                        >
+                    <div class="flex justify-end gap-2 pt-3 border-t border-line">
+                        <AppButton variant="ghost" @click="showModal = false">
                             Batal
-                        </button>
-                        <button 
-                            type="submit" 
-                            :disabled="form.processing"
-                            class="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-lg shadow-emerald-600/30 disabled:opacity-50"
+                        </AppButton>
+                        <AppButton
+                            type="submit"
+                            variant="primary"
+                            :loading="form.processing"
                         >
-                            {{ form.processing ? 'Menyimpan...' : (editingPost ? 'Simpan Perubahan' : 'Terbitkan Artikel') }}
-                        </button>
+                            {{ editingPost ? 'Simpan Perubahan' : 'Terbitkan Artikel' }}
+                        </AppButton>
                     </div>
                 </form>
-            </div>
+            </Modal>
         </div>
-    </AdminLayout>
+    </PortalShell>
 </template>
-

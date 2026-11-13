@@ -1,7 +1,13 @@
 <script setup>
-import { computed } from 'vue';
-import { Head, router, useForm, usePage } from '@inertiajs/vue3';
-import AdminLayout from '@/Layouts/AdminLayout.vue';
+import { Head, router, useForm } from '@inertiajs/vue3';
+import PortalShell from '@/Layouts/PortalShell.vue';
+import PageHeader from '@/Components/ui/PageHeader.vue';
+import AppCard from '@/Components/ui/AppCard.vue';
+import FormField from '@/Components/ui/FormField.vue';
+import AppInput from '@/Components/ui/AppInput.vue';
+import AppButton from '@/Components/ui/AppButton.vue';
+import StatusBadge from '@/Components/ui/StatusBadge.vue';
+import { useToast } from '@/composables/useToast';
 
 const props = defineProps({
     settings: {
@@ -14,8 +20,7 @@ const props = defineProps({
     },
 });
 
-const page = usePage();
-const flash = computed(() => page.props.flash || {});
+const toast = useToast();
 
 const settingsForm = useForm({
     school_name: props.settings.school_name || '',
@@ -29,121 +34,153 @@ const settingsForm = useForm({
 });
 
 const saveSettings = () => {
-    settingsForm.post(route('sistem.pengaturan.update'), { preserveScroll: true });
+    settingsForm.post(route('sistem.pengaturan.update'), {
+        preserveScroll: true,
+        onSuccess: () => toast.success('Pengaturan sistem berhasil disimpan.'),
+    });
 };
 
 const toggleModule = (moduleId) => {
-    router.patch(route('sistem.modules.toggle', moduleId), {}, { preserveScroll: true });
+    router.patch(route('sistem.modules.toggle', moduleId), {}, {
+        preserveScroll: true,
+        onSuccess: () => toast.success('Status modul berhasil diperbarui.'),
+    });
 };
 </script>
 
 <template>
     <Head title="Pengaturan Sistem & Manajemen Modul" />
 
-    <AdminLayout>
-        <div class="space-y-6">
-            <div>
-                <h1 class="text-2xl font-black text-white">Pengaturan Sistem &amp; Manajemen Modul</h1>
-                <p class="text-sm text-slate-400 mt-1">
-                    Kelola identitas sekolah serta aktif/nonaktifkan modul. Modul nonaktif otomatis tersembunyi di menu dan route-nya diblokir.
-                </p>
-            </div>
-
-            <div v-if="flash.success" class="p-4 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-sm font-semibold">
-                {{ flash.success }}
-            </div>
+    <PortalShell variant="sidebar">
+        <div class="space-y-6 max-w-7xl">
+            <PageHeader
+                title="Pengaturan Sistem & Manajemen Modul"
+                subtitle="Kelola identitas sekolah, koordinat radius presensi, serta aktifkan atau nonaktifkan modul SIMSE"
+            />
 
             <!-- Identitas Sekolah -->
-            <form @submit.prevent="saveSettings" class="p-6 rounded-3xl bg-slate-950/60 border border-white/10 space-y-4">
-                <h2 class="text-base font-extrabold text-white">Identitas &amp; Periode Sekolah</h2>
+            <AppCard class="space-y-4">
+                <h2 class="text-sm font-bold text-ink">Identitas & Periode Sekolah</h2>
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-300 mb-1">Nama Sekolah *</label>
-                        <input v-model="settingsForm.school_name" type="text" required class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-white/10 text-sm text-white" />
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-300 mb-1">Semester Aktif *</label>
-                        <input v-model="settingsForm.active_semester" type="text" required class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-white/10 text-sm text-white" />
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-300 mb-1">No. Telepon Sekolah</label>
-                        <input v-model="settingsForm.school_phone" type="text" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-white/10 text-sm text-white" />
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-300 mb-1">Email Resmi</label>
-                        <input v-model="settingsForm.school_email" type="email" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-white/10 text-sm text-white" />
-                    </div>
-                </div>
+                <form @submit.prevent="saveSettings" class="space-y-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <FormField label="Nama Sekolah" :error="settingsForm.errors.school_name" required>
+                            <AppInput
+                                v-model="settingsForm.school_name"
+                                required
+                            />
+                        </FormField>
 
-                <div>
-                    <label class="block text-xs font-bold text-slate-300 mb-1">Alamat Sekolah *</label>
-                    <input v-model="settingsForm.school_address" type="text" required class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-white/10 text-sm text-white" />
-                </div>
+                        <FormField label="Semester Aktif" :error="settingsForm.errors.active_semester" required>
+                            <AppInput
+                                v-model="settingsForm.active_semester"
+                                placeholder="Contoh: Ganjil 2026/2027"
+                                required
+                            />
+                        </FormField>
 
-                <!-- Radius Presensi Geolokasi Pegawai -->
-                <div class="pt-4 border-t border-white/10">
-                    <h3 class="text-xs font-bold uppercase tracking-wider text-emerald-400 mb-3">Konfigurasi Radius Presensi GPS Pegawai</h3>
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        <div>
-                            <label class="block text-xs font-bold text-slate-300 mb-1">Latitude Sekolah</label>
-                            <input v-model="settingsForm.school_latitude" type="text" placeholder="-7.9664" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-white/10 text-sm font-mono text-white" />
+                        <FormField label="No. Telepon Sekolah" :error="settingsForm.errors.school_phone">
+                            <AppInput
+                                v-model="settingsForm.school_phone"
+                                placeholder="(0274) 391147"
+                            />
+                        </FormField>
+
+                        <FormField label="Email Resmi" :error="settingsForm.errors.school_email">
+                            <AppInput
+                                v-model="settingsForm.school_email"
+                                type="email"
+                                placeholder="admin@sdmujahidin-wns.sch.id"
+                            />
+                        </FormField>
+                    </div>
+
+                    <FormField label="Alamat Sekolah" :error="settingsForm.errors.school_address" required>
+                        <AppInput
+                            v-model="settingsForm.school_address"
+                            required
+                        />
+                    </FormField>
+
+                    <!-- Radius Presensi Geolokasi Pegawai -->
+                    <div class="pt-4 border-t border-line space-y-3">
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-brand-700">
+                            Konfigurasi Radius Presensi GPS Pegawai
+                        </h3>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <FormField label="Latitude Sekolah" :error="settingsForm.errors.school_latitude">
+                                <AppInput
+                                    v-model="settingsForm.school_latitude"
+                                    placeholder="-7.9664"
+                                    class="font-numeric"
+                                />
+                            </FormField>
+
+                            <FormField label="Longitude Sekolah" :error="settingsForm.errors.school_longitude">
+                                <AppInput
+                                    v-model="settingsForm.school_longitude"
+                                    placeholder="110.6035"
+                                    class="font-numeric"
+                                />
+                            </FormField>
+
+                            <FormField label="Radius Toleransi (Meter)" :error="settingsForm.errors.school_radius_meters">
+                                <AppInput
+                                    v-model="settingsForm.school_radius_meters"
+                                    type="number"
+                                    min="10"
+                                    max="5000"
+                                    placeholder="150"
+                                    class="font-numeric"
+                                />
+                            </FormField>
                         </div>
-                        <div>
-                            <label class="block text-xs font-bold text-slate-300 mb-1">Longitude Sekolah</label>
-                            <input v-model="settingsForm.school_longitude" type="text" placeholder="110.6035" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-white/10 text-sm font-mono text-white" />
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-slate-300 mb-1">Radius Toleransi (Meter)</label>
-                            <input v-model="settingsForm.school_radius_meters" type="number" min="10" max="5000" placeholder="150" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-white/10 text-sm font-mono text-white" />
-                        </div>
                     </div>
-                </div>
 
-                <div class="flex justify-end">
-                    <button
-                        type="submit"
-                        :disabled="settingsForm.processing"
-                        class="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-colors disabled:opacity-50"
-                    >
-                        {{ settingsForm.processing ? 'Menyimpan...' : 'Simpan Pengaturan' }}
-                    </button>
-                </div>
-            </form>
+                    <div class="flex justify-end pt-2">
+                        <AppButton
+                            type="submit"
+                            variant="primary"
+                            :loading="settingsForm.processing"
+                        >
+                            Simpan Pengaturan
+                        </AppButton>
+                    </div>
+                </form>
+            </AppCard>
 
             <!-- Toggle Modul -->
-            <div class="p-6 rounded-3xl bg-slate-950/60 border border-white/10 space-y-4">
-                <h2 class="text-base font-extrabold text-white">Status Modul SIMSE</h2>
+            <AppCard class="space-y-4">
+                <h2 class="text-sm font-bold text-ink">Status Modul SIMSE</h2>
+                <p class="text-xs text-ink-muted">Modul nonaktif otomatis tersembunyi dari navigasi dan route-nya diblokir.</p>
+
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div
                         v-for="mod in modules"
                         :key="mod.id"
-                        class="p-4 rounded-2xl bg-slate-900/80 border border-white/10 flex items-center justify-between gap-4"
+                        class="p-4 rounded-control bg-surface-raised border border-line flex items-center justify-between gap-4"
                     >
-                        <div>
+                        <div class="space-y-1 min-w-0">
                             <div class="flex items-center gap-2">
-                                <p class="font-bold text-sm text-white">{{ mod.name }}</p>
-                                <span class="px-2 py-0.5 rounded-md bg-white/5 text-[10px] font-mono text-slate-400">
+                                <p class="font-bold text-sm text-ink truncate">{{ mod.name }}</p>
+                                <span class="px-2 py-0.5 rounded-control bg-surface border border-line text-[10px] font-numeric text-ink-muted">
                                     {{ mod.code }}
                                 </span>
                             </div>
-                            <p class="text-xs text-slate-400 mt-1">{{ mod.description }}</p>
+                            <p class="text-xs text-ink-muted line-clamp-1">{{ mod.description }}</p>
                         </div>
 
-                        <button
-                            type="button"
+                        <AppButton
+                            size="sm"
+                            :variant="mod.is_active ? 'primary' : 'secondary'"
+                            class="shrink-0"
                             @click="toggleModule(mod.id)"
-                            class="px-3.5 py-2 rounded-xl text-xs font-bold transition-colors shrink-0"
-                            :class="mod.is_active
-                                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30'
-                                : 'bg-rose-500/20 text-rose-300 border border-rose-500/40 hover:bg-rose-500/30'"
                         >
-                            {{ mod.is_active ? 'Aktif' : 'Nonaktif' }}
-                        </button>
+                            {{ mod.is_active ? '✓ Aktif' : 'Nonaktif' }}
+                        </AppButton>
                     </div>
                 </div>
-            </div>
+            </AppCard>
         </div>
-    </AdminLayout>
+    </PortalShell>
 </template>
-

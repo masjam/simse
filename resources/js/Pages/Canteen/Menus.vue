@@ -1,12 +1,27 @@
 <script setup>
-import CanteenLayout from '@/Layouts/CanteenLayout.vue';
 import { Head, router, useForm } from '@inertiajs/vue3';
 import { ref } from 'vue';
+import PortalShell from '@/Layouts/PortalShell.vue';
+import PageHeader from '@/Components/ui/PageHeader.vue';
+import AppCard from '@/Components/ui/AppCard.vue';
+import AppButton from '@/Components/ui/AppButton.vue';
+import AppInput from '@/Components/ui/AppInput.vue';
+import AppTextarea from '@/Components/ui/AppTextarea.vue';
+import AppCheckbox from '@/Components/ui/AppCheckbox.vue';
+import FormField from '@/Components/ui/FormField.vue';
+import StatusBadge from '@/Components/ui/StatusBadge.vue';
+import EmptyState from '@/Components/ui/EmptyState.vue';
+import MoneyText from '@/Components/domain/MoneyText.vue';
+import { useConfirm } from '@/composables/useConfirm';
+import { useToast } from '@/composables/useToast';
 
 const props = defineProps({
     stand: { type: Object, required: true },
     menus: { type: Array, required: true },
 });
+
+const { confirm } = useConfirm();
+const toast = useToast();
 
 const editingId = ref(null);
 const form = useForm({
@@ -17,12 +32,6 @@ const form = useForm({
     photo: '',
     is_available: true,
 });
-
-const formatRupiah = (amount) => new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    minimumFractionDigits: 0,
-}).format(amount || 0);
 
 const resetForm = () => {
     editingId.value = null;
@@ -39,143 +48,198 @@ const editMenu = (menu) => {
     form.stock = menu.stock;
     form.description = menu.description || '';
     form.photo = menu.photo || '';
-    form.is_available = menu.is_available;
+    form.is_available = Boolean(menu.is_available);
 };
 
 const submit = () => {
     if (editingId.value) {
         form.put(route('kantin.menus.update', editingId.value), {
             preserveScroll: true,
-            onSuccess: () => resetForm(),
+            onSuccess: () => {
+                resetForm();
+                toast.success('Menu berhasil diperbarui!');
+            },
         });
         return;
     }
 
     form.post(route('kantin.menus.store'), {
         preserveScroll: true,
-        onSuccess: () => resetForm(),
+        onSuccess: () => {
+            resetForm();
+            toast.success('Menu baru berhasil ditambahkan!');
+        },
     });
 };
 
-const deleteMenu = (menuId) => {
-    if (!confirm('Hapus menu ini dari daftar stand?')) {
-        return;
-    }
+const deleteMenu = async (menuId) => {
+    const ok = await confirm({
+        title: 'Hapus Menu Kantin',
+        message: 'Apakah Anda yakin ingin menghapus menu ini dari daftar stan?',
+        confirmLabel: 'Ya, Hapus Menu',
+        variant: 'danger',
+    });
 
-    router.delete(route('kantin.menus.destroy', menuId), { preserveScroll: true });
+    if (ok) {
+        router.delete(route('kantin.menus.destroy', menuId), {
+            preserveScroll: true,
+            onSuccess: () => toast.success('Menu berhasil dihapus.'),
+        });
+    }
 };
 </script>
 
 <template>
     <Head title="Kelola Menu & Stok Kantin" />
+    <PortalShell variant="sidebar">
+        <div class="space-y-6">
+            <PageHeader
+                title="Kelola Menu & Stok Kantin"
+                :subtitle="`Katalog menu dan ketersediaan makanan/minuman ${stand.name}`"
+            />
 
-    <CanteenLayout>
-        <template #header>
-            <div>
-                <h1 class="text-base sm:text-lg font-extrabold text-slate-800">Kelola Menu & Stok</h1>
-                <p class="text-xs text-slate-500">{{ stand.name }}</p>
-            </div>
-        </template>
-
-        <div class="grid lg:grid-cols-3 gap-6">
-            <!-- Form Tambah / Edit Menu -->
-            <form class="bg-white rounded-2xl border border-slate-200 p-5 space-y-4 shadow-sm h-fit" @submit.prevent="submit">
-                <div class="flex items-center justify-between">
-                    <h2 class="font-extrabold text-slate-800">
-                        {{ editingId ? 'Edit Menu' : 'Tambah Menu Baru' }}
-                    </h2>
-                    <button v-if="editingId" type="button" class="text-xs font-bold text-slate-500 hover:underline" @click="resetForm">
-                        Batal Edit
-                    </button>
-                </div>
-
-                <div>
-                    <label class="block text-xs font-bold text-slate-600 mb-1">Nama Menu</label>
-                    <input v-model="form.name" type="text" class="w-full rounded-xl border-slate-300 text-sm" placeholder="Contoh: Nasi Soto Ayam" required />
-                    <p v-if="form.errors.name" class="text-xs text-rose-600 mt-1">{{ form.errors.name }}</p>
-                </div>
-
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-600 mb-1">Harga (Rp)</label>
-                        <input v-model.number="form.price" type="number" min="500" step="500" class="w-full rounded-xl border-slate-300 text-sm" required />
-                        <p v-if="form.errors.price" class="text-xs text-rose-600 mt-1">{{ form.errors.price }}</p>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-600 mb-1">Stok</label>
-                        <input v-model.number="form.stock" type="number" min="0" class="w-full rounded-xl border-slate-300 text-sm" required />
-                        <p v-if="form.errors.stock" class="text-xs text-rose-600 mt-1">{{ form.errors.stock }}</p>
-                    </div>
-                </div>
-
-                <div>
-                    <label class="block text-xs font-bold text-slate-600 mb-1">Deskripsi (Opsional)</label>
-                    <textarea v-model="form.description" rows="2" class="w-full rounded-xl border-slate-300 text-sm" placeholder="Porsi anak SD, bebas MSG"></textarea>
-                </div>
-
-                <label class="flex items-center gap-2 text-sm font-semibold text-slate-700 cursor-pointer">
-                    <input v-model="form.is_available" type="checkbox" class="rounded border-slate-300 text-amber-500 focus:ring-amber-500" />
-                    <span>Tampilkan menu ke siswa</span>
-                </label>
-
-                <button
-                    type="submit"
-                    :disabled="form.processing"
-                    class="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-sm transition"
-                >
-                    {{ editingId ? 'Simpan Perubahan Menu' : 'Tambah Menu' }}
-                </button>
-            </form>
-
-            <!-- Daftar Menu -->
-            <div class="lg:col-span-2 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                <div class="px-5 py-4 border-b border-slate-100">
-                    <h2 class="font-extrabold text-slate-800">Daftar Menu Stand ({{ menus.length }})</h2>
-                </div>
-
-                <div v-if="menus.length === 0" class="p-8 text-center text-sm text-slate-500">
-                    Belum ada menu di stand Anda. Tambahkan menu pertama di sebelah kiri.
-                </div>
-
-                <div v-else class="divide-y divide-slate-100">
-                    <div v-for="menu in menus" :key="menu.id" class="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                        <div>
-                            <div class="flex items-center gap-2">
-                                <h3 class="font-bold text-slate-800">{{ menu.name }}</h3>
-                                <span
-                                    class="px-2 py-0.5 rounded-full text-[11px] font-bold"
-                                    :class="menu.is_available ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'"
-                                >
-                                    {{ menu.is_available ? 'Tersedia' : 'Nonaktif' }}
-                                </span>
-                            </div>
-                            <p class="text-xs text-slate-500 mt-0.5">{{ menu.description || 'Tanpa deskripsi' }}</p>
-                            <div class="flex items-center gap-4 mt-2 text-xs font-bold">
-                                <span class="text-amber-700">{{ formatRupiah(menu.price) }}</span>
-                                <span :class="menu.stock <= 5 ? 'text-rose-600' : 'text-slate-600'">Stok: {{ menu.stock }}</span>
-                            </div>
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Form Tambah / Edit Menu -->
+                <AppCard class="h-fit">
+                    <form @submit.prevent="submit" class="space-y-4">
+                        <div class="flex items-center justify-between pb-2 border-b border-line">
+                            <h3 class="font-bold text-ink text-sm">
+                                {{ editingId ? 'Edit Menu' : 'Tambah Menu Baru' }}
+                            </h3>
+                            <AppButton
+                                v-if="editingId"
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                @click="resetForm"
+                            >
+                                Batal Edit
+                            </AppButton>
                         </div>
 
-                        <div class="flex items-center gap-2 shrink-0">
-                            <button
-                                type="button"
-                                class="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-xs font-bold text-slate-700"
-                                @click="editMenu(menu)"
-                            >
-                                Edit
-                            </button>
-                            <button
-                                type="button"
-                                class="px-3 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-xs font-bold text-rose-700"
-                                @click="deleteMenu(menu.id)"
-                            >
-                                Hapus
-                            </button>
+                        <FormField label="Nama Menu" :error="form.errors.name" required>
+                            <AppInput
+                                v-model="form.name"
+                                placeholder="Contoh: Nasi Soto Ayam / Jus Buah"
+                                required
+                            />
+                        </FormField>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <FormField label="Harga (Rp)" :error="form.errors.price" required>
+                                <AppInput
+                                    v-model.number="form.price"
+                                    type="number"
+                                    min="500"
+                                    step="500"
+                                    class="font-numeric"
+                                    required
+                                />
+                            </FormField>
+                            <FormField label="Stok Harian" :error="form.errors.stock" required>
+                                <AppInput
+                                    v-model.number="form.stock"
+                                    type="number"
+                                    min="0"
+                                    class="font-numeric"
+                                    required
+                                />
+                            </FormField>
                         </div>
-                    </div>
+
+                        <FormField label="Deskripsi (Opsional)" :error="form.errors.description">
+                            <AppTextarea
+                                v-model="form.description"
+                                rows="2"
+                                placeholder="Porsi anak SD, bebas MSG, higienis"
+                            />
+                        </FormField>
+
+                        <div class="pt-1">
+                            <AppCheckbox
+                                v-model="form.is_available"
+                                label="Tampilkan menu ke katalog siswa"
+                            />
+                        </div>
+
+                        <div class="pt-2">
+                            <AppButton
+                                type="submit"
+                                variant="primary"
+                                class="w-full shadow-card"
+                                :loading="form.processing"
+                            >
+                                {{ editingId ? 'Simpan Perubahan Menu' : '+ Tambah Menu' }}
+                            </AppButton>
+                        </div>
+                    </form>
+                </AppCard>
+
+                <!-- Daftar Menu -->
+                <div class="lg:col-span-2">
+                    <AppCard>
+                        <div class="flex items-center justify-between pb-3 border-b border-line mb-4">
+                            <h3 class="font-bold text-ink text-sm">
+                                Daftar Menu Stand ({{ menus.length }})
+                            </h3>
+                        </div>
+
+                        <div v-if="menus.length === 0">
+                            <EmptyState
+                                title="Belum Ada Menu"
+                                description="Belum ada menu di stan Anda. Tambahkan menu pertama melalui formulir di samping."
+                            />
+                        </div>
+
+                        <div v-else class="divide-y divide-line">
+                            <div
+                                v-for="menu in menus"
+                                :key="menu.id"
+                                class="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                            >
+                                <div class="space-y-1">
+                                    <div class="flex items-center gap-2">
+                                        <h4 class="font-bold text-ink text-sm">{{ menu.name }}</h4>
+                                        <StatusBadge :variant="menu.is_available ? 'success' : 'neutral'" size="sm">
+                                            {{ menu.is_available ? 'Tersedia' : 'Nonaktif' }}
+                                        </StatusBadge>
+                                    </div>
+                                    <p class="text-xs text-ink-muted">{{ menu.description || 'Tanpa deskripsi' }}</p>
+                                    <div class="flex items-center gap-4 text-xs font-bold pt-1">
+                                        <span class="text-brand-700 font-numeric">
+                                            <MoneyText :amount="menu.price" />
+                                        </span>
+                                        <span
+                                            class="font-numeric"
+                                            :class="menu.stock <= 5 ? 'text-status-danger-fg' : 'text-ink-muted'"
+                                        >
+                                            Stok: {{ menu.stock }}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div class="flex items-center gap-2 shrink-0">
+                                    <AppButton
+                                        variant="secondary"
+                                        size="sm"
+                                        @click="editMenu(menu)"
+                                    >
+                                        Edit
+                                    </AppButton>
+                                    <AppButton
+                                        variant="ghost"
+                                        size="sm"
+                                        class="text-status-danger-fg"
+                                        @click="deleteMenu(menu.id)"
+                                    >
+                                        Hapus
+                                    </AppButton>
+                                </div>
+                            </div>
+                        </div>
+                    </AppCard>
                 </div>
             </div>
         </div>
-    </CanteenLayout>
+    </PortalShell>
 </template>
-

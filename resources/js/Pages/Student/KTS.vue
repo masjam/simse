@@ -1,7 +1,10 @@
 <script setup>
-import StudentLayout from '@/Layouts/StudentLayout.vue';
 import { Head } from '@inertiajs/vue3';
-import QrcodeVue from 'qrcode.vue';
+import PortalShell from '@/Layouts/PortalShell.vue';
+import PageHeader from '@/Components/ui/PageHeader.vue';
+import AppButton from '@/Components/ui/AppButton.vue';
+import QrDisplay from '@/Components/domain/QrDisplay.vue';
+import Avatar from '@/Components/ui/Avatar.vue';
 
 defineProps({
     student: { type: Object, required: true },
@@ -15,111 +18,95 @@ const printKts = () => {
 <template>
     <Head title="Kartu Tanda Siswa (KTS) Digital" />
 
-    <StudentLayout>
+    <PortalShell variant="bottom-nav">
         <template #header>
-            <div>
-                <h1 class="text-base sm:text-lg font-extrabold text-slate-800">Kartu Tanda Siswa (KTS) Digital</h1>
-                <p class="text-xs text-slate-500">Identitas Resmi Siswa SD Muhammadiyah Al Mujahidin Wonosari</p>
-            </div>
+            <PageHeader
+                title="Kartu Tanda Siswa (KTS)"
+                description="Identitas Digital Resmi Siswa SD Muhammadiyah Al Mujahidin"
+            />
         </template>
 
-        <div class="py-4 sm:py-8">
+        <div class="py-4 sm:py-6 space-y-5">
             <div class="flex justify-center">
-                <!-- ID Card Container -->
-                <div class="kts-card relative w-[350px] bg-gradient-to-br from-sky-800 via-teal-800 to-emerald-900 rounded-2xl shadow-2xl overflow-hidden text-white border border-teal-400/30">
-                    <!-- Decorative Background -->
-                    <div class="absolute top-0 right-0 -mt-4 -mr-4 w-32 h-32 bg-white opacity-10 rounded-full blur-2xl"></div>
-                    <div class="absolute bottom-0 left-0 -mb-4 -ml-4 w-40 h-40 bg-amber-400 opacity-15 rounded-full blur-2xl"></div>
-
-                    <!-- Card Header -->
-                    <div class="relative px-6 py-4 border-b border-white/20 bg-black/15 flex items-center justify-between">
+                <!-- Physical-styled ID Card Container -->
+                <div class="w-full max-w-[360px] bg-surface rounded-card border-2 border-brand-600/40 shadow-card overflow-hidden text-ink relative">
+                    <!-- Top Card Header -->
+                    <div class="p-4 bg-brand-600 text-brand-fg flex items-center justify-between border-b border-brand-700">
                         <div>
-                            <h3 class="text-[10px] uppercase tracking-widest text-amber-300 font-extrabold">KARTU TANDA SISWA</h3>
-                            <h2 class="text-xs font-bold tracking-wide mt-0.5">SD Muhammadiyah Al Mujahidin</h2>
-                            <p class="text-[10px] text-sky-200">Wonosari &bull; TA {{ student.academic_year }}</p>
+                            <span class="text-[10px] uppercase tracking-widest text-accent-500 font-extrabold block">
+                                KARTU TANDA SISWA
+                            </span>
+                            <h2 class="text-xs font-black tracking-wide mt-0.5">
+                                SD Muhammadiyah Al Mujahidin
+                            </h2>
+                            <p class="text-[10px] text-white/80">Wonosari &bull; TA {{ student.academic_year }}</p>
                         </div>
-                        <div class="h-10 w-10 bg-white/20 rounded-xl flex items-center justify-center border border-white/40 font-black text-sm">
+                        <div class="w-9 h-9 rounded-control bg-white/20 border border-white/30 flex items-center justify-center font-black text-xs text-brand-fg">
                             SD
                         </div>
                     </div>
 
                     <!-- Card Body -->
-                    <div class="relative px-6 py-6 flex flex-col items-center">
-                        <div class="relative p-1 bg-gradient-to-r from-amber-300 to-emerald-400 rounded-full mb-4 shadow-lg">
+                    <div class="p-5 flex flex-col items-center">
+                        <div class="relative p-1 rounded-full bg-brand-500/20 mb-3">
                             <img
+                                v-if="student.photo_url"
                                 :src="student.photo_url"
                                 alt="Foto Siswa"
-                                class="w-24 h-24 rounded-full border-2 border-white object-cover"
+                                class="w-20 h-20 rounded-full border-2 border-brand-600 object-cover shadow-sm"
+                            />
+                            <Avatar
+                                v-else
+                                :name="student.name"
+                                size="xl"
+                                class="ring-2 ring-brand-600"
                             />
                         </div>
 
                         <div class="text-center w-full">
-                            <h1 class="text-lg font-black tracking-wide">{{ student.name }}</h1>
-                            <p class="text-sky-100 text-xs mt-1 font-semibold">
+                            <h3 class="text-base font-black text-ink tracking-tight">{{ student.name }}</h3>
+                            <p class="text-xs text-brand-700 font-bold mt-0.5">
                                 Kelas {{ student.class_name }} ({{ student.tingkat }})
                             </p>
 
-                            <div class="mt-4 bg-black/25 rounded-xl p-3 text-left border border-white/10 space-y-1.5">
+                            <!-- Data Grid -->
+                            <div class="mt-3 bg-surface-raised rounded-control p-3 text-left border border-line space-y-1.5 text-xs">
                                 <div class="flex justify-between items-center">
-                                    <span class="text-[11px] text-sky-200 uppercase tracking-wider">NISN</span>
-                                    <span class="text-xs font-mono font-bold">{{ student.nisn }}</span>
+                                    <span class="text-[11px] text-ink-muted uppercase tracking-wider font-semibold">NISN</span>
+                                    <span class="font-mono font-bold text-ink">{{ student.nisn }}</span>
                                 </div>
                                 <div class="flex justify-between items-center">
-                                    <span class="text-[11px] text-sky-200 uppercase tracking-wider">NIK</span>
-                                    <span class="text-xs font-mono font-bold">{{ student.nik }}</span>
+                                    <span class="text-[11px] text-ink-muted uppercase tracking-wider font-semibold">NIK</span>
+                                    <span class="font-mono font-bold text-ink">{{ student.nik }}</span>
                                 </div>
                                 <div class="flex justify-between items-center">
-                                    <span class="text-[11px] text-sky-200 uppercase tracking-wider">Jenis Kelamin</span>
-                                    <span class="text-xs font-semibold">{{ student.gender }}</span>
+                                    <span class="text-[11px] text-ink-muted uppercase tracking-wider font-semibold">Jenis Kelamin</span>
+                                    <span class="font-semibold text-ink">{{ student.gender }}</span>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Card Footer / QR Code -->
-                    <div class="relative px-6 py-4 bg-white flex items-center justify-between">
-                        <div class="text-slate-800 text-xs w-2/3 pr-2">
-                            <p class="font-extrabold mb-1 text-teal-900">QR Identitas Siswa</p>
-                            <p class="text-[10px] leading-tight text-slate-500">
-                                Pindai QR Code ini untuk presensi masuk/pulang, peminjaman perpustakaan, dan transaksi e-Kantin.
+                    <!-- Card Footer: QR Identity Code -->
+                    <div class="p-4 bg-surface-raised border-t border-line flex items-center justify-between gap-3">
+                        <div class="text-xs">
+                            <p class="font-bold text-brand-800">QR Identitas Siswa</p>
+                            <p class="text-[10px] text-ink-muted leading-tight mt-0.5">
+                                Dipindai untuk presensi tap, perpustakaan, dan transaksi e-Kantin.
                             </p>
                         </div>
-
-                        <div class="p-1.5 bg-white border border-slate-200 shadow-sm rounded-lg shrink-0">
-                            <qrcode-vue :value="student.qr_value" :size="72" level="H" foreground="#0f766e" />
+                        <div class="shrink-0 p-1 bg-surface border border-line rounded-control shadow-sm">
+                            <QrDisplay :value="student.qr_value || student.nisn || student.id" :size="64" />
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div class="flex justify-center mt-6 print:hidden">
-                <button
-                    type="button"
-                    class="px-6 py-2.5 bg-teal-600 hover:bg-teal-700 text-white text-sm font-bold rounded-xl shadow-lg transition flex items-center gap-2"
-                    @click="printKts"
-                >
-                    <span>Cetak KTS Digital</span>
-                </button>
+            <div class="flex justify-center print:hidden">
+                <AppButton variant="primary" size="md" @click="printKts">
+                    Cetak Kartu Tanda Siswa
+                </AppButton>
             </div>
         </div>
-    </StudentLayout>
+    </PortalShell>
 </template>
-
-<style>
-@media print {
-    body * {
-        visibility: hidden;
-    }
-    .kts-card,
-    .kts-card * {
-        visibility: visible;
-    }
-    .kts-card {
-        position: absolute;
-        left: 0;
-        top: 0;
-        margin: 0;
-        box-shadow: none !important;
-    }
-}
-</style>

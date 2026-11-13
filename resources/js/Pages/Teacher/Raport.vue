@@ -1,7 +1,15 @@
 <script setup>
-import TeacherLayout from '@/Layouts/TeacherLayout.vue';
-import { Head, router } from '@inertiajs/vue3';
 import { ref, computed } from 'vue';
+import { Head, router } from '@inertiajs/vue3';
+import PortalShell from '@/Layouts/PortalShell.vue';
+import PageHeader from '@/Components/ui/PageHeader.vue';
+import AppButton from '@/Components/ui/AppButton.vue';
+import AppSelect from '@/Components/ui/AppSelect.vue';
+import Modal from '@/Components/ui/Modal.vue';
+import ScoreChip from '@/Components/domain/ScoreChip.vue';
+import KopSurat from '@/Components/domain/KopSurat.vue';
+import EmptyState from '@/Components/ui/EmptyState.vue';
+import Avatar from '@/Components/ui/Avatar.vue';
 
 const props = defineProps({
     classes: { type: Array, default: () => [] },
@@ -22,14 +30,12 @@ const onFilterChange = () => {
     }, { preserveState: true, replace: true });
 };
 
-const getPredikatColor = (p) => {
-    if (p.startsWith('A')) return 'bg-emerald-100 text-emerald-700 border-emerald-200';
-    if (p.startsWith('B')) return 'bg-blue-100 text-blue-700 border-blue-200';
-    if (p.startsWith('C')) return 'bg-amber-100 text-amber-700 border-amber-200';
-    return 'bg-red-100 text-red-700 border-red-200';
-};
+const classOptions = computed(() => classList.value.map(c => ({ value: c, label: `Kelas ${c}` })));
+const semesterOptions = [
+    { value: 'Ganjil 2026/2027', label: 'Ganjil 2026/2027' },
+    { value: 'Genap 2025/2026', label: 'Genap 2025/2026' },
+];
 
-// Modal for Printable Raport
 const showPrintModal = ref(false);
 const activeStudent = ref(null);
 
@@ -44,210 +50,138 @@ const printDoc = () => {
 </script>
 
 <template>
-    <Head title="e-Raport" />
-    <TeacherLayout>
-        <template #header-title><h1 class="text-lg font-bold text-slate-800">e-Raport Hasil Belajar</h1></template>
-        <template #header-subtitle><p class="text-xs text-slate-500">Penerbitan capaian kompetensi santri SD Muhammadiyah Al Mujahidin</p></template>
+    <Head title="e-Raport Siswa" />
 
-        <div class="space-y-6">
+    <PortalShell variant="sidebar">
+        <template #header>
+            <PageHeader
+                title="e-Raport Hasil Belajar"
+                description="Penerbitan Capaian Kompetensi Siswa SD Muhammadiyah Al Mujahidin"
+            />
+        </template>
+
+        <div class="space-y-4">
             <!-- Filter Bar -->
-            <div class="bg-white rounded-xl border border-slate-200/60 shadow-sm p-4 flex flex-col sm:flex-row gap-3 items-end">
-                <div class="flex-1">
-                    <label class="text-xs font-bold text-slate-600 mb-1 block">Rombongan Belajar (Kelas)</label>
-                    <select v-model="selectedClass" @change="onFilterChange" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                        <option v-for="cls in classList" :key="cls">{{ cls }}</option>
-                    </select>
+            <div class="bg-surface rounded-card border border-line p-4 shadow-card flex flex-col sm:flex-row gap-3 items-end justify-between">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full sm:w-auto flex-1">
+                    <div>
+                        <label for="rombel-select" class="block text-xs font-bold text-ink-muted mb-1">Rombongan Belajar</label>
+                        <AppSelect
+                            id="rombel-select"
+                            v-model="selectedClass"
+                            :options="classOptions"
+                            @change="onFilterChange"
+                        />
+                    </div>
+                    <div>
+                        <label for="sem-select" class="block text-xs font-bold text-ink-muted mb-1">Semester &amp; Tahun Ajaran</label>
+                        <AppSelect
+                            id="sem-select"
+                            v-model="selectedSemester"
+                            :options="semesterOptions"
+                            @change="onFilterChange"
+                        />
+                    </div>
                 </div>
-                <div class="flex-1">
-                    <label class="text-xs font-bold text-slate-600 mb-1 block">Semester & Tahun Ajaran</label>
-                    <select v-model="selectedSemester" @change="onFilterChange" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                        <option>Ganjil 2026/2027</option>
-                        <option>Genap 2025/2026</option>
-                    </select>
+
+                <div v-if="students.length > 0" class="shrink-0 self-start sm:self-auto">
+                    <AppButton
+                        size="sm"
+                        variant="primary"
+                        @click="openPrint(students[0])"
+                    >
+                        Pratinjau Cetak e-Raport
+                    </AppButton>
                 </div>
-                <button v-if="students.length > 0" @click="openPrint(students[0])"
-                        class="px-5 py-2.5 bg-emerald-600 text-white text-xs font-bold rounded-lg hover:bg-emerald-700 transition shadow-md shadow-emerald-600/20 flex items-center gap-2 whitespace-nowrap">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
-                    Preview Format Cetak
-                </button>
             </div>
 
-            <!-- Raport Card List -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div v-for="student in students" :key="student.id"
-                     class="bg-white rounded-xl border border-slate-200/80 shadow-sm overflow-hidden hover:shadow-md transition">
-                    <div class="p-5">
-                        <div class="flex justify-between items-start mb-3">
-                            <div class="flex items-center gap-3">
-                                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-bold text-sm shadow-md">
-                                    {{ student.name.charAt(0) }}
-                                </div>
-                                <div>
-                                    <h4 class="font-bold text-slate-800 text-sm">{{ student.name }}</h4>
-                                    <p class="text-xs text-slate-400">NISN: {{ student.nisn || '-' }}</p>
-                                </div>
-                            </div>
-                            <span :class="getPredikatColor(student.predikat)" class="text-xs font-black px-3 py-1 rounded-lg border">
-                                Predikat: {{ student.predikat }}
-                            </span>
-                        </div>
-
-                        <div class="flex items-center gap-4 mb-3">
-                            <div class="flex-1">
-                                <p class="text-[11px] font-semibold text-slate-500 mb-1">Nilai Kumulatif Akhir</p>
-                                <div class="w-full bg-slate-100 rounded-full h-2">
-                                    <div class="h-2 rounded-full transition-all duration-500"
-                                         :class="student.nilaiAkhir >= 85 ? 'bg-emerald-500' : student.nilaiAkhir >= 75 ? 'bg-blue-500' : 'bg-amber-500'"
-                                         :style="`width: ${student.nilaiAkhir}%`"></div>
+            <!-- Students Raport Cards List -->
+            <div v-if="students.length === 0">
+                <EmptyState
+                    title="Tidak Ada Siswa"
+                    description="Belum ada data siswa terdaftar pada kelas yang dipilih."
+                />
+            </div>
+            <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                <div
+                    v-for="student in students"
+                    :key="student.id"
+                    class="bg-surface rounded-card border border-line p-4 shadow-card hover:bg-surface-raised/40 transition-all flex flex-col justify-between gap-3"
+                >
+                    <div class="space-y-3">
+                        <div class="flex items-start justify-between gap-2">
+                            <div class="flex items-center gap-3 min-w-0">
+                                <Avatar :name="student.name" size="md" />
+                                <div class="min-w-0">
+                                    <h4 class="font-bold text-sm text-ink truncate">{{ student.name }}</h4>
+                                    <p class="text-xs text-ink-muted">NISN: {{ student.nisn || '-' }}</p>
                                 </div>
                             </div>
-                            <span class="text-2xl font-black text-slate-800">{{ student.nilaiAkhir }}</span>
+                            <ScoreChip :score="student.predikat" :show-score="false" />
                         </div>
 
-                        <p class="text-xs text-slate-600 bg-slate-50 border border-slate-100 rounded-lg p-3 leading-relaxed">
-                            <strong class="text-slate-700">Capaian Kompetensi:</strong> {{ student.catatan }}
+                        <div class="grid grid-cols-3 gap-2 text-xs pt-1">
+                            <div class="p-2 rounded-control bg-surface-raised border border-line text-center">
+                                <span class="text-[10px] text-ink-muted block">Nilai Akhir</span>
+                                <span class="font-bold font-mono text-sm text-brand-600">{{ student.nilai_akhir ?? '-' }}</span>
+                            </div>
+                            <div class="p-2 rounded-control bg-surface-raised border border-line text-center">
+                                <span class="text-[10px] text-ink-muted block">Kehadiran</span>
+                                <span class="font-bold font-mono text-sm text-ink">{{ student.kehadiran ?? '100%' }}</span>
+                            </div>
+                            <div class="p-2 rounded-control bg-surface-raised border border-line text-center">
+                                <span class="text-[10px] text-ink-muted block">Predikat</span>
+                                <span class="font-black text-sm text-ink">{{ student.predikat ?? 'A' }}</span>
+                            </div>
+                        </div>
+
+                        <p v-if="student.catatan" class="text-xs text-ink-muted italic leading-relaxed line-clamp-2">
+                            "{{ student.catatan }}"
                         </p>
                     </div>
 
-                    <div class="border-t border-slate-100 px-5 py-3 flex justify-between items-center bg-slate-50/50">
-                        <span class="text-[11px] font-semibold text-slate-400">{{ selectedSemester }}</span>
-                        <div class="flex gap-2">
-                            <button @click="openPrint(student)" class="px-3.5 py-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition flex items-center gap-1.5">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
-                                Cetak Raport
-                            </button>
-                        </div>
+                    <div class="pt-2 border-t border-line flex justify-end">
+                        <AppButton size="sm" variant="secondary" @click="openPrint(student)">
+                            Lihat Dokumen Raport &rarr;
+                        </AppButton>
                     </div>
                 </div>
             </div>
+        </div>
 
-            <!-- Printable e-Raport Modal -->
-            <Teleport to="body">
-                <div v-if="showPrintModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-                    <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[92vh] overflow-y-auto p-6 md:p-8">
-                        <div class="flex justify-between items-center pb-4 border-b border-slate-200 mb-6 print:hidden">
-                            <h3 class="font-bold text-slate-800">Pratinjau Cetak e-Raport Santri</h3>
-                            <div class="flex gap-2">
-                                <button @click="printDoc" class="px-4 py-2 bg-emerald-600 text-white font-bold text-xs rounded-lg hover:bg-emerald-700 transition flex items-center gap-1.5">
-                                    🖨️ Cetak / Simpan PDF
-                                </button>
-                                <button @click="showPrintModal = false" class="px-3 py-2 bg-slate-100 text-slate-600 font-bold text-xs rounded-lg hover:bg-slate-200 transition">
-                                    Tutup
-                                </button>
-                            </div>
-                        </div>
+        <!-- Printable Preview Modal -->
+        <Modal :show="showPrintModal" title="Lembar e-Raport Resmi" max-width="2xl" @close="showPrintModal = false">
+            <div v-if="activeStudent" class="space-y-4 text-xs text-ink">
+                <KopSurat />
 
-                        <!-- Formal School Raport Layout -->
-                        <div v-if="activeStudent" class="border border-slate-300 p-8 rounded-xl bg-white text-slate-800 font-sans text-xs space-y-6">
-                            <!-- Kop Surat Resmi SD Muhammadiyah Al Mujahidin -->
-                            <div class="border-b-2 border-double border-slate-800 pb-4 text-center">
-                                <h4 class="text-xs uppercase font-bold tracking-widest text-slate-600">MAJELIS PENDIDIKAN DASAR DAN MENENGAH PDM GUNUNGKIDUL</h4>
-                                <h2 class="text-lg font-black uppercase text-slate-900 tracking-wide mt-1">SD MUHAMMADIYAH AL MUJAHIDIN WONOSARI</h2>
-                                <p class="text-[10px] text-slate-500 mt-1">Alamat: Jl. KH Agus Salim No. 35, Wonosari, Gunungkidul, D.I. Yogyakarta 55812 | Telp: (0274) 391234</p>
-                            </div>
+                <div class="text-center border-b border-line pb-3">
+                    <h3 class="text-sm font-bold uppercase text-ink">LAPORAN HASIL BELAJAR SISWA</h3>
+                    <p class="text-xs text-ink-muted mt-0.5">Semester {{ selectedSemester }}</p>
+                </div>
 
-                            <div class="text-center">
-                                <h3 class="font-bold text-sm uppercase underline tracking-wider">LAPORAN HASIL BELAJAR PESERTA DIDIK</h3>
-                                <p class="text-[11px] text-slate-500 mt-0.5">Tahun Ajaran: {{ selectedSemester }}</p>
-                            </div>
-
-                            <!-- Student Info -->
-                            <div class="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-lg border border-slate-200">
-                                <div class="space-y-1">
-                                    <div class="flex"><span class="w-28 font-semibold text-slate-500">Nama Santri</span>: <span class="font-bold text-slate-800 ml-1">{{ activeStudent.name }}</span></div>
-                                    <div class="flex"><span class="w-28 font-semibold text-slate-500">NISN</span>: <span class="font-mono ml-1">{{ activeStudent.nisn || '-' }}</span></div>
-                                </div>
-                                <div class="space-y-1">
-                                    <div class="flex"><span class="w-28 font-semibold text-slate-500">Kelas / Rombel</span>: <span class="font-bold ml-1">{{ selectedClass }}</span></div>
-                                    <div class="flex"><span class="w-28 font-semibold text-slate-500">Fase / Semester</span>: <span class="ml-1">Fase A / {{ selectedSemester }}</span></div>
-                                </div>
-                            </div>
-
-                            <!-- Nilai Table -->
-                            <table class="w-full border-collapse border border-slate-300 text-left">
-                                <thead class="bg-slate-100 text-slate-700">
-                                    <tr>
-                                        <th class="border border-slate-300 p-2 text-center w-10">No</th>
-                                        <th class="border border-slate-300 p-2">Mata Pelajaran</th>
-                                        <th class="border border-slate-300 p-2 text-center w-20">Nilai Akhir</th>
-                                        <th class="border border-slate-300 p-2 text-center w-20">Predikat</th>
-                                        <th class="border border-slate-300 p-2">Capaian Kompetensi & Catatan</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr>
-                                        <td class="border border-slate-300 p-2.5 text-center">1</td>
-                                        <td class="border border-slate-300 p-2.5 font-semibold">Pendidikan Agama Islam dan Budi Pekerti</td>
-                                        <td class="border border-slate-300 p-2.5 text-center font-bold text-sm">{{ activeStudent.nilaiAkhir }}</td>
-                                        <td class="border border-slate-300 p-2.5 text-center font-bold">{{ activeStudent.predikat }}</td>
-                                        <td class="border border-slate-300 p-2.5 text-slate-600 leading-relaxed">{{ activeStudent.catatan }}</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-
-                            <!-- Catatan Prestasi Siswa -->
-                            <div class="space-y-2">
-                                <h4 class="font-bold text-xs uppercase tracking-wider text-slate-700">
-                                    Catatan Prestasi &amp; Penghargaan Siswa
-                                </h4>
-                                <table class="w-full border-collapse border border-slate-300 text-left">
-                                    <thead class="bg-slate-100 text-slate-700">
-                                        <tr>
-                                            <th class="border border-slate-300 p-2 text-center w-10">No</th>
-                                            <th class="border border-slate-300 p-2">Nama Prestasi / Lomba</th>
-                                            <th class="border border-slate-300 p-2 text-center">Kategori</th>
-                                            <th class="border border-slate-300 p-2 text-center">Tingkat</th>
-                                            <th class="border border-slate-300 p-2 text-center w-16">Tahun</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr v-if="!activeStudent.achievements || activeStudent.achievements.length === 0">
-                                            <td colspan="5" class="border border-slate-300 p-2.5 text-center text-slate-500 italic">
-                                                Belum ada catatan prestasi terverifikasi pada semester ini.
-                                            </td>
-                                        </tr>
-                                        <tr v-for="(ach, idx) in activeStudent.achievements" :key="ach.id">
-                                            <td class="border border-slate-300 p-2 text-center">{{ idx + 1 }}</td>
-                                            <td class="border border-slate-300 p-2 font-semibold">
-                                                {{ ach.name }}
-                                                <span v-if="ach.organizer && ach.organizer !== '-'" class="block text-[10px] font-normal text-slate-500">
-                                                    Penyelenggara: {{ ach.organizer }}
-                                                </span>
-                                            </td>
-                                            <td class="border border-slate-300 p-2 text-center">{{ ach.category }}</td>
-                                            <td class="border border-slate-300 p-2 text-center">{{ ach.level }}</td>
-                                            <td class="border border-slate-300 p-2 text-center">{{ ach.year }}</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-
-                            <!-- Signatures -->
-                            <div class="grid grid-cols-3 gap-4 pt-12 text-center text-xs">
-                                <div>
-                                    <p class="text-slate-500">Mengetahui,<br>Orang Tua / Wali Santri</p>
-                                    <div class="h-16"></div>
-                                    <p class="font-bold border-b border-slate-400 inline-block px-8 pb-0.5">( ........................................ )</p>
-                                </div>
-                                <div>
-                                    <p class="text-slate-500">Wonosari, 25 Oktober 2026<br>Guru Pendidikan Agama Islam</p>
-                                    <div class="h-16 flex items-center justify-center">
-                                        <span class="text-[10px] text-emerald-600 font-bold border border-emerald-300 px-2 py-0.5 rounded bg-emerald-50">Tervalidasi Digital</span>
-                                    </div>
-                                    <p class="font-bold">{{ teacher.name }}</p>
-                                    <p class="text-[10px] text-slate-500">NIP. {{ teacher.nip }}</p>
-                                </div>
-                                <div>
-                                    <p class="text-slate-500">Kepala Sekolah<br>SD Muhammadiyah Al Mujahidin</p>
-                                    <div class="h-16"></div>
-                                    <p class="font-bold">Joko Kiswanto, S.Pd.I., M.Pd.</p>
-                                    <p class="text-[10px] text-slate-500">NIP. 197805122005011008</p>
-                                </div>
-                            </div>
-                        </div>
+                <div class="grid grid-cols-2 gap-2 text-xs p-3 bg-surface-raised rounded-control border border-line">
+                    <div>
+                        <p><span class="text-ink-muted">Nama Siswa:</span> <strong class="text-ink">{{ activeStudent.name }}</strong></p>
+                        <p><span class="text-ink-muted">NISN:</span> <strong class="text-ink font-mono">{{ activeStudent.nisn || '-' }}</strong></p>
+                    </div>
+                    <div>
+                        <p><span class="text-ink-muted">Kelas:</span> <strong class="text-ink">{{ selectedClass }}</strong></p>
+                        <p><span class="text-ink-muted">Wali Kelas:</span> <strong class="text-ink">{{ teacher.name }}</strong></p>
                     </div>
                 </div>
-            </Teleport>
-        </div>
-    </TeacherLayout>
+
+                <div class="p-4 bg-surface rounded-control border border-line space-y-2">
+                    <p class="font-bold text-xs">Capaian Akademik:</p>
+                    <p class="text-xs leading-relaxed">
+                        Ananda <strong>{{ activeStudent.name }}</strong> telah menuntaskan seluruh tujuan pembelajaran dengan perolehan nilai rata-rata <strong>{{ activeStudent.nilai_akhir ?? 88 }}</strong> (Predikat <strong>{{ activeStudent.predikat ?? 'A' }}</strong>).
+                    </p>
+                </div>
+
+                <div class="flex items-center justify-end gap-2 pt-3 border-t border-line print:hidden">
+                    <AppButton size="sm" variant="ghost" @click="showPrintModal = false">Tutup</AppButton>
+                    <AppButton size="sm" variant="primary" @click="printDoc">Cetak Raport</AppButton>
+                </div>
+            </div>
+        </Modal>
+    </PortalShell>
 </template>

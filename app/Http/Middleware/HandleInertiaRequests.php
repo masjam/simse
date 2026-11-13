@@ -58,6 +58,13 @@ class HandleInertiaRequests extends Middleware
             ];
         }
 
+        $defaultTheme = config('theme.default', 'madinah');
+        if ($user) {
+            $userRole = $user->getRoleNames()->first();
+            $defaultTheme = config("theme.roles.{$userRole}", $defaultTheme);
+        }
+        $activeTheme = $request->cookie('simse_theme') ?: ($request->session()->get('theme') ?: $defaultTheme);
+
         return [
             ...parent::share($request),
             'auth' => [
@@ -68,9 +75,11 @@ class HandleInertiaRequests extends Middleware
             ],
             'activeModules' => app(ModuleService::class)->activeMap(),
             'notificationsSummary' => $notificationsSummary,
+            'theme' => $activeTheme,
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
                 'error' => fn () => $request->session()->get('error'),
+                'warning' => fn () => $request->session()->get('warning'),
             ],
         ];
     }

@@ -1,10 +1,11 @@
 <script setup>
-import GuestLayout from '@/Layouts/GuestLayout.vue';
-import InputError from '@/Components/InputError.vue';
-import InputLabel from '@/Components/InputLabel.vue';
-import PrimaryButton from '@/Components/PrimaryButton.vue';
-import TextInput from '@/Components/TextInput.vue';
 import { Head, useForm } from '@inertiajs/vue3';
+import PortalShell from '@/Layouts/PortalShell.vue';
+import AppCard from '@/Components/ui/AppCard.vue';
+import FormField from '@/Components/ui/FormField.vue';
+import AppInput from '@/Components/ui/AppInput.vue';
+import AppButton from '@/Components/ui/AppButton.vue';
+import ApplicationLogo from '@/Components/ApplicationLogo.vue';
 
 const props = defineProps({
     email: {
@@ -32,70 +33,61 @@ const submit = () => {
 </script>
 
 <template>
-    <GuestLayout>
-        <Head title="Reset Password" />
+    <Head title="Atur Ulang Kata Sandi - SIMSE" />
+    <PortalShell variant="bare">
+        <div class="min-h-screen py-12 px-4 flex flex-col justify-center items-center">
+            <div class="w-full max-w-md space-y-6">
+                <div class="text-center space-y-2">
+                    <div class="w-14 h-14 bg-brand-50 border border-brand-200 rounded-control flex items-center justify-center p-2.5 mx-auto shadow-card">
+                        <ApplicationLogo class="w-full h-full text-brand-700" />
+                    </div>
+                    <h2 class="text-xl font-bold text-ink">Atur Ulang Kata Sandi</h2>
+                    <p class="text-xs text-ink-muted">Buat kata sandi baru untuk akun SIMSE Anda</p>
+                </div>
 
-        <form @submit.prevent="submit">
-            <div>
-                <InputLabel for="email" value="Email" />
+                <AppCard>
+                    <form @submit.prevent="submit" class="space-y-4">
+                        <FormField label="Alamat Pos-el (Email)" :error="form.errors.email" required>
+                            <AppInput
+                                v-model="form.email"
+                                type="email"
+                                required
+                                autofocus
+                            />
+                        </FormField>
 
-                <TextInput
-                    id="email"
-                    type="email"
-                    class="mt-1 block w-full"
-                    v-model="form.email"
-                    required
-                    autofocus
-                    autocomplete="username"
-                />
+                        <FormField label="Kata Sandi Baru" :error="form.errors.password" required>
+                            <AppInput
+                                v-model="form.password"
+                                type="password"
+                                placeholder="Minimal 8 karakter"
+                                required
+                            />
+                        </FormField>
 
-                <InputError class="mt-2" :message="form.errors.email" />
+                        <FormField label="Konfirmasi Kata Sandi Baru" :error="form.errors.password_confirmation" required>
+                            <AppInput
+                                v-model="form.password_confirmation"
+                                type="password"
+                                placeholder="Ulangi kata sandi"
+                                required
+                            />
+                        </FormField>
+
+                        <div class="pt-2">
+                            <AppButton
+                                type="submit"
+                                variant="primary"
+                                size="lg"
+                                class="w-full shadow-card"
+                                :loading="form.processing"
+                            >
+                                Simpan Kata Sandi Baru
+                            </AppButton>
+                        </div>
+                    </form>
+                </AppCard>
             </div>
-
-            <div class="mt-4">
-                <InputLabel for="password" value="Password" />
-
-                <TextInput
-                    id="password"
-                    type="password"
-                    class="mt-1 block w-full"
-                    v-model="form.password"
-                    required
-                    autocomplete="new-password"
-                />
-
-                <InputError class="mt-2" :message="form.errors.password" />
-            </div>
-
-            <div class="mt-4">
-                <InputLabel
-                    for="password_confirmation"
-                    value="Confirm Password"
-                />
-
-                <TextInput
-                    id="password_confirmation"
-                    type="password"
-                    class="mt-1 block w-full"
-                    v-model="form.password_confirmation"
-                    required
-                    autocomplete="new-password"
-                />
-
-                <InputError
-                    class="mt-2"
-                    :message="form.errors.password_confirmation"
-                />
-            </div>
-
-            <div class="mt-4 flex items-center justify-end">
-                <PrimaryButton
-                    :class="{ 'opacity-25': form.processing }"
-                    :disabled="form.processing"
-                >
-                    Reset Password
-                </PrimaryButton>
-            </div>
-        </form>
-    </GuestLayout>
+        </div>
+    </PortalShell>
 </template>

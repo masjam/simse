@@ -1,0 +1,147 @@
+/**
+ * SIMSE Design System Tokens
+ * SD Muhammadiyah Al Mujahidin Wonosari
+ *
+ * All color values are defined as hex/rgb to allow contrast calculation in check-contrast.mjs
+ */
+
+:root,
+[data-theme="madinah"] {
+    /* Brand Scale: Islamic Emerald / Teal */
+    --brand-50: #F0FDFA;
+    --brand-100: #CCFBF1;
+    --brand-200: #99F6E4;
+    --brand-300: #5EEAD4;
+    --brand-400: #2DD4BF;
+    --brand-500: #14B8A6;
+    --brand-600: #0F766E;
+    --brand-700: #115E59;
+    --brand-800: #134E4A;
+    --brand-900: #042F2E;
+    --brand-fg: #FFFFFF;
+
+    /* Accent Scale: Al-Mujahidin Gold / Amber */
+    --accent-50: #FFFBEB;
+    --accent-100: #FEF3C7;
+    --accent-200: #FDE68A;
+    --accent-300: #FCD34D;
+    --accent-400: #FBBF24;
+    --accent-500: #F59E0B;
+    --accent-600: #D97706;
+    --accent-700: #B45309;
+    --accent-800: #92400E;
+    --accent-900: #78350F;
+    --accent-fg: #FFFFFF;
+
+    /* Surfaces */
+    --surface: #FFFFFF;
+    --surface-raised: #F8FAFC;
+    --surface-sunken: #F1F5F9;
+
+    /* Typography / Ink */
+    --ink: #0F172A;
+    --ink-muted: #475569;
+
+    /* Borders & Focus */
+    --line: #E2E8F0;
+    --focus: #0D9488;
+
+    /* Semantic Status (bg, fg, line) - contrast verified >= 4.5:1 */
+    --success-bg: #ECFDF5;
+    --success-fg: #065F46;
+    --success-line: #A7F3D0;
+
+    --warning-bg: #FFFBEB;
+    --warning-fg: #92400E;
+    --warning-line: #FDE68A;
+
+    --danger-bg: #FEF2F2;
+    --danger-fg: #991B1B;
+    --danger-line: #FECACA;
+
+    --info-bg: #EFF6FF;
+    --info-fg: #1E40AF;
+    --info-line: #BFDBFE;
+
+    /* Shapes & Elevation */
+    --radius-card: 0.75rem;
+    --radius-control: 0.5rem;
+    --shadow-card: 0 1px 3px 0 rgba(0, 0, 0, 0.08), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
+    --shadow-pop: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.08);
+
+    /* Typography families & density */
+    --font-display: 'Figtree', system-ui, -apple-system, sans-serif;
+    --font-body: 'Figtree', system-ui, -apple-system, sans-serif;
+    --font-numeric: 'Figtree', monospace;
+    --density: 1;
+}
+
+[data-theme="madinah-gelap"],
+[data-theme="uji-gelap"] {
+    /* Brand Scale: Dark teal */
+    --brand-50: #134E4A;
+    --brand-100: #115E59;
+    --brand-200: #0F766E;
+    --brand-300: #0D9488;
+    --brand-400: #14B8A6;
+    --brand-500: #2DD4BF;
+    --brand-600: #14B8A6;
+    --brand-700: #2DD4BF;
+    --brand-800: #5EEAD4;
+    --brand-900: #CCFBF1;
+    --brand-fg: #042F2E;
+
+    /* Accent Scale */
+    --accent-50: #78350F;
+    --accent-100: #92400E;
+    --accent-200: #B45309;
+    --accent-300: #D97706;
+    --accent-400: #F59E0B;
+    --accent-500: #FBBF24;
+    --accent-600: #FCD34D;
+    --accent-700: #FDE68A;
+    --accent-800: #FEF3C7;
+    --accent-900: #FFFBEB;
+    --accent-fg: #451A03;
+
+    /* Surfaces */
+    --surface: #0F172A;
+    --surface-raised: #1E293B;
+    --surface-sunken: #090D16;
+
+    /* Typography / Ink */
+    --ink: #F8FAFC;
+    --ink-muted: #94A3B8;
+
+    /* Borders & Focus */
+    --line: #334155;
+    --focus: #2DD4BF;
+
+    /* Semantic Status - contrast verified >= 4.5:1 */
+    --success-bg: #064E3B;
+    --success-fg: #A7F3D0;
+    --success-line: #047857;
+
+    --warning-bg: #78350F;
+    --warning-fg: #FDE68A;
+    --warning-line: #B45309;
+
+    --danger-bg: #7F1D1D;
+    --danger-fg: #FECACA;
+    --danger-line: #B91C1C;
+
+    --info-bg: #1E3A8A;
+    --info-fg: #BFDBFE;
+    --info-line: #1D4ED8;
+
+    /* Shapes & Elevation */
+    --radius-card: 0.75rem;
+    --radius-control: 0.5rem;
+    --shadow-card: 0 1px 3px 0 rgba(0, 0, 0, 0.4), 0 1px 2px -1px rgba(0, 0, 0, 0.3);
+    --shadow-pop: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -4px rgba(0, 0, 0, 0.4);
+
+    --font-display: 'Figtree', system-ui, -apple-system, sans-serif;
+    --font-body: 'Figtree', system-ui, -apple-system, sans-serif;
+    --font-numeric: 'Figtree', monospace;
+    --density: 1;
+}

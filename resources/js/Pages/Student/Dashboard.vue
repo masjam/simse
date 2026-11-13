@@ -1,8 +1,14 @@
 <script setup>
-import StudentLayout from '@/Layouts/StudentLayout.vue';
+import { computed } from 'vue';
 import { Head, Link } from '@inertiajs/vue3';
+import PortalShell from '@/Layouts/PortalShell.vue';
+import PageHeader from '@/Components/ui/PageHeader.vue';
+import AppButton from '@/Components/ui/AppButton.vue';
+import StatusBadge from '@/Components/ui/StatusBadge.vue';
+import EmptyState from '@/Components/ui/EmptyState.vue';
+import Avatar from '@/Components/ui/Avatar.vue';
 
-defineProps({
+const props = defineProps({
     student: { type: Object, required: true },
     todayName: { type: String, required: true },
     todayDate: { type: String, required: true },
@@ -13,156 +19,256 @@ defineProps({
     weeklyMaterials: { type: Array, default: () => [] },
     summary: { type: Object, required: true },
 });
+
+// Mode Ramah Anak untuk tingkat 1, 2, 3
+const isKidsMode = computed(() => {
+    const tingkat = String(props.student?.tingkat || '');
+    return ['1', '2', '3'].some((l) => tingkat.includes(l));
+});
+
+// Next lesson today
+const nextLesson = computed(() => props.todaySchedules[0] || null);
+
+// Closest assignment
+const closestTask = computed(() => props.upcomingAssignments.find((t) => !t.is_submitted) || props.upcomingAssignments[0] || null);
 </script>
 
 <template>
-    <Head title="Dashboard Siswa" />
+    <Head title="Beranda Siswa" />
 
-    <StudentLayout>
+    <PortalShell variant="bottom-nav">
         <template #header>
-            <div>
-                <h1 class="text-base sm:text-lg font-extrabold text-slate-800">Beranda Siswa</h1>
-                <p class="text-xs text-slate-500">SD Muhammadiyah Al Mujahidin Wonosari</p>
-            </div>
+            <PageHeader
+                title="Beranda Siswa"
+                :description="`SD Muhammadiyah Al Mujahidin • Kelas ${student.class_name}`"
+            />
         </template>
 
-        <div class="space-y-6">
-            <!-- Hero Student Card -->
-            <div class="rounded-2xl bg-gradient-to-r from-sky-600 via-teal-600 to-emerald-600 p-5 sm:p-6 text-white shadow-lg">
-                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                    <div>
-                        <span class="inline-block px-3 py-1 rounded-full bg-white/20 text-xs font-bold tracking-wide mb-2">
-                            {{ todayName }}, {{ todayDate }}
-                        </span>
-                        <h2 class="text-xl sm:text-2xl font-black">Assalamu'alaikum, {{ student.name }}</h2>
-                        <p class="text-sm text-sky-100 mt-1">
-                            Kelas {{ student.class_name }} ({{ student.tingkat }}) &bull; NISN {{ student.nisn }}
-                        </p>
-                        <p class="text-xs text-sky-100/90 mt-1">Wali Kelas: {{ student.wali_kelas }}</p>
+        <div class="space-y-5">
+            <!-- 1. Hero Greeting Banner (With Kid-Friendly Mode adjustments) -->
+            <div
+                class="rounded-card border border-brand-500/30 p-5 sm:p-6 shadow-card bg-surface relative overflow-hidden"
+                :class="isKidsMode ? 'bg-gradient-to-r from-brand-50 via-surface to-brand-50/50' : 'bg-surface'"
+            >
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 relative z-10">
+                    <div class="flex items-start sm:items-center gap-3.5 min-w-0">
+                        <Avatar
+                            :name="student.name"
+                            :size="isKidsMode ? 'xl' : 'lg'"
+                            class="ring-2 ring-brand-500/40 shrink-0"
+                        />
+                        <div class="min-w-0">
+                            <span class="inline-block px-2.5 py-0.5 rounded-full bg-brand-100 text-brand-800 text-[11px] font-bold tracking-wide mb-1">
+                                {{ todayName }}, {{ todayDate }}
+                            </span>
+                            <h2
+                                class="font-black text-ink truncate"
+                                :class="isKidsMode ? 'text-xl sm:text-2xl text-brand-900' : 'text-lg sm:text-xl'"
+                            >
+                                Assalamu'alaikum, {{ student.name }}!
+                            </h2>
+                            <p class="text-xs text-ink-muted truncate mt-0.5">
+                                Kelas {{ student.class_name }} ({{ student.tingkat }}) &bull; NISN: {{ student.nisn }} &bull; Wali: {{ student.wali_kelas }}
+                            </p>
+                        </div>
                     </div>
-                    <div class="flex flex-wrap gap-2">
-                        <Link
-                            :href="route('siswa.lms')"
-                            class="px-4 py-2 rounded-xl bg-white text-teal-800 text-xs sm:text-sm font-bold shadow hover:bg-sky-50 transition"
-                        >
-                            Buka LMS & Tugas
+
+                    <!-- Quick Action Buttons -->
+                    <div class="flex items-center gap-2 shrink-0">
+                        <Link :href="route('siswa.lms')">
+                            <AppButton
+                                :size="isKidsMode ? 'lg' : 'sm'"
+                                variant="primary"
+                            >
+                                Buka Tugas LMS
+                            </AppButton>
                         </Link>
-                        <Link
-                            :href="route('siswa.cbt')"
-                            class="px-4 py-2 rounded-xl bg-amber-400 text-slate-900 text-xs sm:text-sm font-bold shadow hover:bg-amber-300 transition"
-                        >
-                            Ujian CBT
+                        <Link :href="route('siswa.cbt')">
+                            <AppButton
+                                :size="isKidsMode ? 'lg' : 'sm'"
+                                variant="secondary"
+                            >
+                                Ujian CBT
+                            </AppButton>
                         </Link>
                     </div>
                 </div>
             </div>
 
-            <!-- Mobile-First Quick Stats Grid -->
-            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
-                    <p class="text-xs font-semibold text-slate-500">Tugas Belum Selesai</p>
-                    <p class="text-2xl font-black text-amber-600 mt-1">{{ summary.pending_tasks }}</p>
-                    <Link :href="route('siswa.lms')" class="text-[11px] font-bold text-sky-600 hover:underline mt-2 inline-block">
-                        Lihat Tugas &rarr;
+            <!-- 2. Priority Focus: "Pelajaran Berikutnya" & "Tugas Terdekat" -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                <!-- Pelajaran Berikutnya -->
+                <div class="bg-surface rounded-card border border-line p-4 shadow-card flex items-start justify-between gap-3">
+                    <div class="min-w-0">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full bg-brand-500"></span>
+                            <span class="text-xs font-bold uppercase tracking-wider text-ink-muted">
+                                Pelajaran Berikutnya Hari Ini
+                            </span>
+                        </div>
+                        <div v-if="nextLesson" class="mt-2">
+                            <h4 class="text-base font-bold text-ink truncate">{{ nextLesson.subject }}</h4>
+                            <p class="text-xs text-ink-muted mt-0.5">
+                                {{ nextLesson.teacher }} &bull; Ruang: {{ nextLesson.room }} ({{ nextLesson.jpl }} JPL)
+                            </p>
+                            <span class="inline-block mt-2 px-2.5 py-0.5 rounded-control bg-brand-50 text-brand-700 text-xs font-mono font-bold">
+                                {{ nextLesson.time_start }} - {{ nextLesson.time_end }}
+                            </span>
+                        </div>
+                        <div v-else class="mt-2 text-xs text-ink-muted">
+                            Tidak ada jadwal pelajaran lagi hari ini.
+                        </div>
+                    </div>
+                    <Link :href="route('siswa.jadwal')" class="text-xs font-bold text-brand-600 hover:underline shrink-0">
+                        Jadwal &rarr;
                     </Link>
                 </div>
 
-                <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
-                    <p class="text-xs font-semibold text-slate-500">Ujian CBT Aktif</p>
-                    <p class="text-2xl font-black text-indigo-600 mt-1">{{ summary.active_exams_count }}</p>
-                    <Link :href="route('siswa.cbt')" class="text-[11px] font-bold text-sky-600 hover:underline mt-2 inline-block">
+                <!-- Tugas Terdekat -->
+                <div class="bg-surface rounded-card border border-line p-4 shadow-card flex items-start justify-between gap-3">
+                    <div class="min-w-0">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full bg-status-warning-fg"></span>
+                            <span class="text-xs font-bold uppercase tracking-wider text-ink-muted">
+                                Tugas Terdekat
+                            </span>
+                        </div>
+                        <div v-if="closestTask" class="mt-2">
+                            <h4 class="text-base font-bold text-ink truncate">{{ closestTask.title }}</h4>
+                            <p class="text-xs text-ink-muted mt-0.5">{{ closestTask.subject }} &bull; Batas: {{ closestTask.due_date }}</p>
+                            <div class="mt-2">
+                                <span
+                                    v-if="closestTask.is_submitted"
+                                    class="px-2 py-0.5 rounded-control text-xs font-bold bg-status-success-bg text-status-success-fg"
+                                >
+                                    Sudah Dikumpulkan
+                                </span>
+                                <span
+                                    v-else
+                                    class="px-2 py-0.5 rounded-control text-xs font-bold"
+                                    :class="closestTask.is_overdue ? 'bg-status-danger-bg text-status-danger-fg' : 'bg-status-warning-bg text-status-warning-fg'"
+                                >
+                                    {{ closestTask.is_overdue ? 'Terlewat Deadline' : 'Perlu Dikerjakan' }}
+                                </span>
+                            </div>
+                        </div>
+                        <div v-else class="mt-2 text-xs text-ink-muted">
+                            Alhamdulillah, tidak ada tanggungan tugas saat ini.
+                        </div>
+                    </div>
+                    <Link :href="route('siswa.lms')" class="text-xs font-bold text-brand-600 hover:underline shrink-0">
+                        LMS &rarr;
+                    </Link>
+                </div>
+            </div>
+
+            <!-- 3. Stat Cards Grid -->
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                <div class="bg-surface rounded-card border border-line p-4 shadow-card">
+                    <p class="text-xs font-semibold text-ink-muted">Tugas Belum Selesai</p>
+                    <p class="text-2xl font-black text-status-warning-fg mt-1 font-mono">{{ summary.pending_tasks }}</p>
+                    <Link :href="route('siswa.lms')" class="text-[11px] font-bold text-brand-600 hover:underline mt-2 inline-block">
+                        Lihat Daftar Tugas &rarr;
+                    </Link>
+                </div>
+
+                <div class="bg-surface rounded-card border border-line p-4 shadow-card">
+                    <p class="text-xs font-semibold text-ink-muted">Ujian CBT Aktif</p>
+                    <p class="text-2xl font-black text-brand-600 mt-1 font-mono">{{ summary.active_exams_count }}</p>
+                    <Link :href="route('siswa.cbt')" class="text-[11px] font-bold text-brand-600 hover:underline mt-2 inline-block">
                         Daftar Ujian &rarr;
                     </Link>
                 </div>
 
-                <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
-                    <p class="text-xs font-semibold text-slate-500">Kehadiran Saya</p>
-                    <p class="text-2xl font-black text-emerald-600 mt-1">{{ summary.attendance_rate }}%</p>
-                    <Link :href="route('siswa.presensi')" class="text-[11px] font-bold text-sky-600 hover:underline mt-2 inline-block">
+                <div class="bg-surface rounded-card border border-line p-4 shadow-card">
+                    <p class="text-xs font-semibold text-ink-muted">Kehadiran Saya</p>
+                    <p class="text-2xl font-black text-status-success-fg mt-1 font-mono">{{ summary.attendance_rate }}%</p>
+                    <Link :href="route('siswa.presensi')" class="text-[11px] font-bold text-brand-600 hover:underline mt-2 inline-block">
                         Riwayat Presensi &rarr;
                     </Link>
                 </div>
 
-                <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
-                    <p class="text-xs font-semibold text-slate-500">Poin Pelanggaran</p>
+                <div class="bg-surface rounded-card border border-line p-4 shadow-card">
+                    <p class="text-xs font-semibold text-ink-muted">Poin Disiplin</p>
                     <div class="flex items-baseline gap-2 mt-1">
-                        <p class="text-2xl font-black text-slate-800">{{ summary.violation_points }}</p>
-                        <span
-                            class="px-2 py-0.5 rounded-full text-[10px] font-bold"
-                            :class="summary.sp_status === 'Aman' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'"
-                        >
-                            {{ summary.sp_status }}
-                        </span>
+                        <span class="text-2xl font-black text-ink font-mono">{{ summary.violation_points }}</span>
+                        <StatusBadge :status="summary.sp_status" />
                     </div>
-                    <p class="text-[11px] text-slate-500 mt-1">
-                        Rata-rata nilai: {{ summary.average_grade ?? '-' }}
+                    <p class="text-[11px] text-ink-muted mt-1">
+                        Rata-rata Nilai: {{ summary.average_grade ?? '-' }}
                     </p>
                 </div>
             </div>
 
-            <!-- Main Content Grid -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- 4. Content Sections: Jadwal Hari Ini & Tugas & Materi & CBT -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 <!-- Jadwal Hari Ini -->
-                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
-                    <div class="flex items-center justify-between mb-4">
-                        <h3 class="font-extrabold text-slate-800">Jadwal Hari Ini ({{ todayName }})</h3>
-                        <Link :href="route('siswa.jadwal')" class="text-xs font-bold text-sky-600 hover:underline">
-                            Semua Jadwal
+                <div class="bg-surface rounded-card border border-line shadow-card p-4 space-y-3">
+                    <div class="flex items-center justify-between border-b border-line pb-2.5">
+                        <h3 class="font-bold text-sm text-ink">Jadwal Hari Ini ({{ todayName }})</h3>
+                        <Link :href="route('siswa.jadwal')" class="text-xs font-bold text-brand-600 hover:underline">
+                            Semua Jadwal &rarr;
                         </Link>
                     </div>
-                    <div v-if="todaySchedules.length === 0" class="text-sm text-slate-500 py-6 text-center bg-slate-50 rounded-xl">
-                        Tidak ada jadwal pelajaran untuk hari ini.
+
+                    <div v-if="todaySchedules.length === 0">
+                        <EmptyState
+                            title="Tidak Ada Jadwal"
+                            description="Tidak ada kegiatan pelajaran terjadwal untuk hari ini."
+                        />
                     </div>
-                    <div v-else class="space-y-3">
+                    <div v-else class="space-y-2">
                         <div
                             v-for="item in todaySchedules"
                             :key="item.id"
-                            class="flex items-center justify-between p-3.5 rounded-xl bg-slate-50 border border-slate-100"
+                            class="p-3 rounded-control bg-surface-raised border border-line flex items-center justify-between gap-3"
                         >
-                            <div>
-                                <p class="font-bold text-sm text-slate-800">{{ item.subject }}</p>
-                                <p class="text-xs text-slate-500 mt-0.5">{{ item.teacher }} &bull; {{ item.room }}</p>
+                            <div class="min-w-0">
+                                <p class="font-bold text-xs text-ink truncate">{{ item.subject }}</p>
+                                <p class="text-[11px] text-ink-muted mt-0.5">{{ item.teacher }} &bull; {{ item.room }}</p>
                             </div>
-                            <div class="text-right shrink-0 ml-3">
-                                <span class="inline-block px-2.5 py-1 rounded-lg bg-sky-100 text-sky-800 text-xs font-bold">
-                                    {{ item.time_start }} - {{ item.time_end }}
-                                </span>
-                            </div>
+                            <span class="shrink-0 px-2 py-0.5 rounded-control bg-brand-50 text-brand-700 text-xs font-mono font-bold">
+                                {{ item.time_start }} - {{ item.time_end }}
+                            </span>
                         </div>
                     </div>
                 </div>
 
                 <!-- Tugas Mendekati Deadline -->
-                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
-                    <div class="flex items-center justify-between mb-4">
-                        <h3 class="font-extrabold text-slate-800">Tugas Mendekati Deadline</h3>
-                        <Link :href="route('siswa.lms')" class="text-xs font-bold text-sky-600 hover:underline">
-                            Buka LMS
+                <div class="bg-surface rounded-card border border-line shadow-card p-4 space-y-3">
+                    <div class="flex items-center justify-between border-b border-line pb-2.5">
+                        <h3 class="font-bold text-sm text-ink">Tugas Mendekati Deadline</h3>
+                        <Link :href="route('siswa.lms')" class="text-xs font-bold text-brand-600 hover:underline">
+                            Buka LMS &rarr;
                         </Link>
                     </div>
-                    <div v-if="upcomingAssignments.length === 0" class="text-sm text-slate-500 py-6 text-center bg-slate-50 rounded-xl">
-                        Belum ada tugas aktif saat ini.
+
+                    <div v-if="upcomingAssignments.length === 0">
+                        <EmptyState
+                            title="Belum Ada Tugas"
+                            description="Belum ada penugasan aktif dari guru."
+                        />
                     </div>
-                    <div v-else class="space-y-3">
+                    <div v-else class="space-y-2">
                         <div
                             v-for="task in upcomingAssignments"
                             :key="task.id"
-                            class="p-3.5 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-between gap-3"
+                            class="p-3 rounded-control bg-surface-raised border border-line flex items-center justify-between gap-3"
                         >
                             <div class="min-w-0">
-                                <p class="font-bold text-sm text-slate-800 truncate">{{ task.title }}</p>
-                                <p class="text-xs text-slate-500 mt-0.5">{{ task.subject }} &bull; Batas: {{ task.due_date }}</p>
+                                <p class="font-bold text-xs text-ink truncate">{{ task.title }}</p>
+                                <p class="text-[11px] text-ink-muted mt-0.5">{{ task.subject }} &bull; Batas: {{ task.due_date }}</p>
                             </div>
                             <span
                                 v-if="task.is_submitted"
-                                class="shrink-0 px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-700 text-xs font-bold"
+                                class="shrink-0 px-2 py-0.5 rounded-control bg-status-success-bg text-status-success-fg text-xs font-bold"
                             >
                                 {{ task.score !== null ? `Nilai ${task.score}` : 'Terkumpul' }}
                             </span>
                             <span
                                 v-else
-                                class="shrink-0 px-2.5 py-1 rounded-lg text-xs font-bold"
-                                :class="task.is_overdue ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-800'"
+                                class="shrink-0 px-2 py-0.5 rounded-control text-xs font-bold"
+                                :class="task.is_overdue ? 'bg-status-danger-bg text-status-danger-fg' : 'bg-status-warning-bg text-status-warning-fg'"
                             >
                                 {{ task.is_overdue ? 'Terlewat' : 'Belum Kumpul' }}
                             </span>
@@ -170,75 +276,81 @@ defineProps({
                     </div>
                 </div>
 
-                <!-- Materi Mingguan (Ringkasan Jurnal Guru) -->
-                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
-                    <div class="flex items-center justify-between mb-4">
+                <!-- Materi Mingguan -->
+                <div class="bg-surface rounded-card border border-line shadow-card p-4 space-y-3">
+                    <div class="flex items-center justify-between border-b border-line pb-2.5">
                         <div>
-                            <h3 class="font-extrabold text-slate-800">Materi Mingguan</h3>
-                            <p class="text-[11px] text-slate-500">Ringkasan jurnal guru ({{ weekLabel || 'Minggu Ini' }})</p>
+                            <h3 class="font-bold text-sm text-ink">Materi Mingguan Guru</h3>
+                            <p class="text-[11px] text-ink-muted">{{ weekLabel || 'Minggu Ini' }}</p>
                         </div>
-                        <Link :href="route('siswa.materi-mingguan')" class="text-xs font-bold text-sky-600 hover:underline">
-                            Lihat Semua
+                        <Link :href="route('siswa.materi-mingguan')" class="text-xs font-bold text-brand-600 hover:underline">
+                            Lihat Semua &rarr;
                         </Link>
                     </div>
-                    <div v-if="weeklyMaterials.length === 0" class="text-sm text-slate-500 py-6 text-center bg-slate-50 rounded-xl">
-                        Belum ada ringkasan jurnal guru pada minggu ini.
+
+                    <div v-if="weeklyMaterials.length === 0">
+                        <EmptyState
+                            title="Belum Ada Materi"
+                            description="Belum ada ringkasan materi jurnal guru pada minggu ini."
+                        />
                     </div>
-                    <div v-else class="space-y-3">
+                    <div v-else class="space-y-2">
                         <div
                             v-for="item in weeklyMaterials"
                             :key="item.id"
-                            class="p-3.5 rounded-xl bg-teal-50/60 border border-teal-100 space-y-1"
+                            class="p-3 rounded-control bg-surface-raised border border-line space-y-1"
                         >
                             <div class="flex items-center justify-between gap-2">
-                                <span class="px-2 py-0.5 rounded bg-teal-600 text-white text-[10px] font-bold">
+                                <span class="px-2 py-0.5 rounded-control bg-brand-50 text-brand-700 text-[10px] font-bold">
                                     {{ item.subject }}
                                 </span>
-                                <span class="text-[11px] text-slate-500">{{ item.date }}</span>
+                                <span class="text-[11px] text-ink-muted">{{ item.date }}</span>
                             </div>
-                            <p class="font-bold text-sm text-slate-800">{{ item.topic }}</p>
-                            <p class="text-xs text-slate-600 line-clamp-2">{{ item.summary }}</p>
+                            <p class="font-bold text-xs text-ink">{{ item.topic }}</p>
+                            <p class="text-xs text-ink-muted line-clamp-2 leading-relaxed">{{ item.summary }}</p>
                         </div>
                     </div>
                 </div>
 
                 <!-- Ujian CBT Aktif -->
-                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
-                    <div class="flex items-center justify-between mb-4">
-                        <h3 class="font-extrabold text-slate-800">Ujian Online (CBT)</h3>
-                        <Link :href="route('siswa.cbt')" class="text-xs font-bold text-sky-600 hover:underline">
-                            Lihat Semua
+                <div class="bg-surface rounded-card border border-line shadow-card p-4 space-y-3">
+                    <div class="flex items-center justify-between border-b border-line pb-2.5">
+                        <h3 class="font-bold text-sm text-ink">Ujian Online (CBT)</h3>
+                        <Link :href="route('siswa.cbt')" class="text-xs font-bold text-brand-600 hover:underline">
+                            Lihat Semua &rarr;
                         </Link>
                     </div>
-                    <div v-if="activeExams.length === 0" class="text-sm text-slate-500 py-6 text-center bg-slate-50 rounded-xl">
-                        Tidak ada ujian CBT aktif saat ini.
+
+                    <div v-if="activeExams.length === 0">
+                        <EmptyState
+                            title="Tidak Ada Ujian Aktif"
+                            description="Tidak ada ujian online CBT yang sedang berlangsung saat ini."
+                        />
                     </div>
-                    <div v-else class="space-y-3">
+                    <div v-else class="space-y-2">
                         <div
                             v-for="exam in activeExams"
                             :key="exam.id"
-                            class="p-3.5 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-between gap-3"
+                            class="p-3 rounded-control bg-surface-raised border border-line flex items-center justify-between gap-3"
                         >
                             <div class="min-w-0">
-                                <p class="font-bold text-sm text-slate-800 truncate">{{ exam.title }}</p>
-                                <p class="text-xs text-slate-500 mt-0.5">
-                                    {{ exam.subject }} &bull; {{ exam.duration_minutes }} menit &bull; {{ exam.questions_count }} soal
+                                <p class="font-bold text-xs text-ink truncate">{{ exam.title }}</p>
+                                <p class="text-[11px] text-ink-muted mt-0.5">
+                                    {{ exam.subject }} &bull; {{ exam.duration_minutes }} menit &bull; {{ exam.questions_count }} butir
                                 </p>
                             </div>
-                            <Link
-                                v-if="exam.can_start"
-                                :href="route('siswa.cbt.start', exam.id)"
-                                class="shrink-0 px-3 py-1.5 rounded-xl bg-indigo-600 text-white text-xs font-bold hover:bg-indigo-700"
-                            >
-                                Kerjakan
+                            <Link v-if="exam.can_start" :href="route('siswa.cbt.start', exam.id)">
+                                <AppButton size="sm" variant="primary">
+                                    Kerjakan
+                                </AppButton>
                             </Link>
                             <span
                                 v-else-if="exam.is_finished"
-                                class="shrink-0 px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-700 text-xs font-bold"
+                                class="shrink-0 px-2.5 py-1 rounded-control bg-status-success-bg text-status-success-fg text-xs font-bold"
                             >
                                 Nilai: {{ exam.score ?? 0 }}
                             </span>
-                            <span v-else class="shrink-0 px-2.5 py-1 rounded-lg bg-slate-200 text-slate-700 text-xs font-bold">
+                            <span v-else class="shrink-0 px-2 py-0.5 rounded-control bg-surface text-ink-muted border border-line text-xs font-bold">
                                 Terjadwal
                             </span>
                         </div>
@@ -246,6 +358,5 @@ defineProps({
                 </div>
             </div>
         </div>
-    </StudentLayout>
+    </PortalShell>
 </template>
-

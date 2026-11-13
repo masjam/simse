@@ -13,16 +13,16 @@ class SubjectSeeder extends Seeder
     public function run(): void
     {
         $subjects = [
-            ['code' => 'PAI', 'name' => 'Pendidikan Agama Islam dan Budi Pekerti'],
-            ['code' => 'PAK', 'name' => 'Pendidikan Agama Kristen dan Budi Pekerti'],
-            ['code' => 'PP', 'name' => 'Pendidikan Pancasila'],
-            ['code' => 'BIN', 'name' => 'Bahasa Indonesia'],
             ['code' => 'MTK', 'name' => 'Matematika'],
-            ['code' => 'IPAS', 'name' => 'Ilmu Pengetahuan Alam dan Sosial (IPAS)'],
-            ['code' => 'PJOK', 'name' => 'Pendidikan Jasmani, Olahraga, dan Kesehatan'],
-            ['code' => 'SBDP', 'name' => 'Seni dan Budaya'],
+            ['code' => 'BIN', 'name' => 'Bahasa Indonesia'],
+            ['code' => 'IPAS', 'name' => 'IPAS'],
+            ['code' => 'PAI', 'name' => 'Pendidikan Agama Islam'],
+            ['code' => 'AIK', 'name' => 'Al-Islam dan Kemuhammadiyahan'],
+            ['code' => 'BAR', 'name' => 'Bahasa Arab'],
             ['code' => 'BIG', 'name' => 'Bahasa Inggris'],
-            ['code' => 'MULOK', 'name' => 'Muatan Lokal'],
+            ['code' => 'PJOK', 'name' => 'PJOK'],
+            ['code' => 'SB', 'name' => 'Seni Budaya'],
+            ['code' => 'THF', 'name' => 'Tahfidz'],
         ];
 
         foreach ($subjects as $subject) {

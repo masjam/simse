@@ -1,7 +1,14 @@
 <script setup>
-import BendaharaLayout from '@/Layouts/BendaharaLayout.vue';
 import { Head, router } from '@inertiajs/vue3';
 import { ref } from 'vue';
+import PortalShell from '@/Layouts/PortalShell.vue';
+import PageHeader from '@/Components/ui/PageHeader.vue';
+import StatCard from '@/Components/ui/StatCard.vue';
+import AppButton from '@/Components/ui/AppButton.vue';
+import AppInput from '@/Components/ui/AppInput.vue';
+import StatusBadge from '@/Components/ui/StatusBadge.vue';
+import DataTable from '@/Components/ui/DataTable.vue';
+import MoneyText from '@/Components/domain/MoneyText.vue';
 
 const props = defineProps({
     filters: { type: Object, required: true },
@@ -13,132 +20,182 @@ const props = defineProps({
 const startDate = ref(props.filters.start_date);
 const endDate = ref(props.filters.end_date);
 
-const formatRupiah = (amount) => new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    minimumFractionDigits: 0,
-}).format(amount || 0);
-
 const applyFilter = () => {
     router.get(route('bendahara.kantin'), {
         start_date: startDate.value,
         end_date: endDate.value,
     }, { preserveState: true });
 };
+
+const standColumns = [
+    { key: 'name', label: 'Nama Stand' },
+    { key: 'owner_name', label: 'Pengelola' },
+    { key: 'is_open', label: 'Status Operasional', class: 'text-center' },
+    { key: 'total_orders', label: 'Pesanan', class: 'text-right' },
+    { key: 'completed_orders', label: 'Selesai', class: 'text-right' },
+    { key: 'total_revenue', label: 'Omzet Periode', class: 'text-right' },
+    { key: 'balance', label: 'Saldo Stand', class: 'text-right' },
+];
+
+const orderColumns = [
+    { key: 'qr_code_pickup', label: 'Kode Pesanan' },
+    { key: 'student_name', label: 'Siswa' },
+    { key: 'stand_name', label: 'Stand' },
+    { key: 'items_summary', label: 'Rincian Menu' },
+    { key: 'status', label: 'Status', class: 'text-center' },
+    { key: 'total_price', label: 'Total', class: 'text-right' },
+];
 </script>
 
 <template>
     <Head title="Laporan Penjualan e-Kantin" />
-
-    <BendaharaLayout>
+    <PortalShell variant="sidebar">
         <div class="space-y-6">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                    <h1 class="text-2xl font-black text-slate-800">Laporan Penjualan e-Kantin</h1>
-                    <p class="text-sm text-slate-500">Rekapitulasi transaksi dan omzet per stand kantin sekolah</p>
-                </div>
+            <PageHeader
+                title="Laporan Penjualan e-Kantin"
+                subtitle="Rekapitulasi transaksi, pembagian hasil, dan omzet per stan kantin SD Muhammadiyah Al Mujahidin"
+            />
 
-                <form class="flex flex-wrap items-center gap-2" @submit.prevent="applyFilter">
-                    <input v-model="startDate" type="date" class="rounded-xl border-slate-300 text-xs font-semibold" />
-                    <span class="text-xs text-slate-400">s/d</span>
-                    <input v-model="endDate" type="date" class="rounded-xl border-slate-300 text-xs font-semibold" />
-                    <button type="submit" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold">
+            <!-- Filter Bar -->
+            <div class="bg-surface rounded-card border border-line p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 shadow-card">
+                <p class="text-xs text-ink-muted">Pilih rentang tanggal transaksi untuk memfilter laporan penjualan</p>
+                <form class="flex flex-wrap items-center gap-2 w-full sm:w-auto" @submit.prevent="applyFilter">
+                    <div class="w-36">
+                        <AppInput v-model="startDate" type="date" />
+                    </div>
+                    <span class="text-xs text-ink-muted font-bold">s/d</span>
+                    <div class="w-36">
+                        <AppInput v-model="endDate" type="date" />
+                    </div>
+                    <AppButton type="submit" variant="primary" size="sm">
                         Filter
-                    </button>
+                    </AppButton>
                 </form>
             </div>
 
             <!-- Summary Cards -->
             <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
-                    <p class="text-xs font-bold text-slate-500">Jumlah Stand</p>
-                    <p class="text-2xl font-black text-slate-800 mt-1">{{ summary.total_stands }}</p>
-                </div>
-                <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
-                    <p class="text-xs font-bold text-slate-500">Pesanan Periode Ini</p>
-                    <p class="text-2xl font-black text-sky-700 mt-1">{{ summary.total_orders }}</p>
-                </div>
-                <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
-                    <p class="text-xs font-bold text-slate-500">Total Omzet Periode</p>
-                    <p class="text-2xl font-black text-emerald-700 mt-1">{{ formatRupiah(summary.total_revenue) }}</p>
-                </div>
-                <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
-                    <p class="text-xs font-bold text-slate-500">Total Saldo Stand</p>
-                    <p class="text-2xl font-black text-amber-700 mt-1">{{ formatRupiah(summary.total_stand_balance) }}</p>
-                </div>
+                <StatCard
+                    title="Jumlah Stand"
+                    :value="summary.total_stands"
+                    subtitle="Stan Terdaftar"
+                    icon-bg="brand"
+                >
+                    <template #icon>🏪</template>
+                </StatCard>
+                <StatCard
+                    title="Total Pesanan"
+                    :value="summary.total_orders"
+                    subtitle="Transaksi Selesai"
+                    icon-bg="accent"
+                >
+                    <template #icon>🧾</template>
+                </StatCard>
+                <StatCard
+                    title="Total Omzet"
+                    :value="summary.total_revenue"
+                    subtitle="Pendapatan Kotor"
+                    icon-bg="success"
+                >
+                    <template #icon>💰</template>
+                </StatCard>
+                <StatCard
+                    title="Total Saldo Stand"
+                    :value="summary.total_stand_balance"
+                    subtitle="Kewajiban Sekolah"
+                    icon-bg="warning"
+                >
+                    <template #icon>🏦</template>
+                </StatCard>
             </div>
 
-            <!-- Tabel Per Stand -->
-            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                <div class="px-6 py-4 border-b border-slate-100">
-                    <h2 class="font-extrabold text-slate-800">Rekapitulasi Per Stand</h2>
-                </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse text-sm">
-                        <thead class="bg-slate-50 text-xs font-bold text-slate-500 uppercase">
-                            <tr>
-                                <th class="px-6 py-3">Nama Stand</th>
-                                <th class="px-6 py-3">Pengelola</th>
-                                <th class="px-6 py-3">Status</th>
-                                <th class="px-6 py-3 text-right">Pesanan</th>
-                                <th class="px-6 py-3 text-right">Selesai</th>
-                                <th class="px-6 py-3 text-right">Omzet Periode</th>
-                                <th class="px-6 py-3 text-right">Saldo Stand</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-100">
-                            <tr v-for="stand in stands" :key="stand.id" class="hover:bg-slate-50/70">
-                                <td class="px-6 py-3.5 font-bold text-slate-800">{{ stand.name }}</td>
-                                <td class="px-6 py-3.5 text-slate-600">{{ stand.owner_name }}</td>
-                                <td class="px-6 py-3.5">
-                                    <span class="px-2.5 py-0.5 rounded-full text-xs font-bold" :class="stand.is_open ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'">
-                                        {{ stand.is_open ? 'Buka' : 'Tutup' }}
-                                    </span>
-                                </td>
-                                <td class="px-6 py-3.5 text-right font-semibold">{{ stand.total_orders }}</td>
-                                <td class="px-6 py-3.5 text-right font-semibold">{{ stand.completed_orders }}</td>
-                                <td class="px-6 py-3.5 text-right font-black text-emerald-700">{{ formatRupiah(stand.total_revenue) }}</td>
-                                <td class="px-6 py-3.5 text-right font-bold text-slate-800">{{ formatRupiah(stand.balance) }}</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
+            <!-- Stand Recapitulation -->
+            <div class="space-y-3">
+                <h3 class="text-base font-bold text-ink px-1">Rekapitulasi Omzet Per Stand Kantin</h3>
+                <DataTable
+                    :columns="standColumns"
+                    :items="stands"
+                    empty-title="Belum Ada Data Stand"
+                    empty-message="Belum ada stan kantin yang terdaftar di sistem e-Kantin."
+                >
+                    <template #cell(name)="{ item }">
+                        <strong class="text-xs font-bold text-ink">{{ item.name }}</strong>
+                    </template>
+
+                    <template #cell(owner_name)="{ value }">
+                        <span class="text-xs text-ink-muted">{{ value }}</span>
+                    </template>
+
+                    <template #cell(is_open)="{ value }">
+                        <div class="flex justify-center">
+                            <StatusBadge :variant="value ? 'success' : 'neutral'" size="sm">
+                                {{ value ? 'Buka' : 'Tutup' }}
+                            </StatusBadge>
+                        </div>
+                    </template>
+
+                    <template #cell(total_orders)="{ value }">
+                        <span class="text-xs font-semibold text-ink font-numeric">{{ value }}</span>
+                    </template>
+
+                    <template #cell(completed_orders)="{ value }">
+                        <span class="text-xs font-semibold text-status-success-fg font-numeric">{{ value }}</span>
+                    </template>
+
+                    <template #cell(total_revenue)="{ value }">
+                        <span class="text-xs font-black text-brand-700 font-numeric">
+                            <MoneyText :amount="value" />
+                        </span>
+                    </template>
+
+                    <template #cell(balance)="{ value }">
+                        <span class="text-xs font-bold text-ink font-numeric">
+                            <MoneyText :amount="value" />
+                        </span>
+                    </template>
+                </DataTable>
             </div>
 
-            <!-- Riwayat Pesanan Terbaru -->
-            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                <div class="px-6 py-4 border-b border-slate-100">
-                    <h2 class="font-extrabold text-slate-800">Transaksi Kantin Terbaru</h2>
-                </div>
-                <div v-if="recentOrders.length === 0" class="p-8 text-center text-sm text-slate-500">
-                    Belum ada transaksi kantin pada rentang tanggal ini.
-                </div>
-                <div v-else class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse text-sm">
-                        <thead class="bg-slate-50 text-xs font-bold text-slate-500 uppercase">
-                            <tr>
-                                <th class="px-6 py-3">Kode</th>
-                                <th class="px-6 py-3">Siswa</th>
-                                <th class="px-6 py-3">Stand</th>
-                                <th class="px-6 py-3">Rincian</th>
-                                <th class="px-6 py-3">Status</th>
-                                <th class="px-6 py-3 text-right">Total</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-100">
-                            <tr v-for="order in recentOrders" :key="order.id">
-                                <td class="px-6 py-3 font-mono text-xs font-bold text-slate-700">{{ order.qr_code_pickup }}</td>
-                                <td class="px-6 py-3 font-semibold text-slate-800">{{ order.student_name }}</td>
-                                <td class="px-6 py-3 text-slate-600">{{ order.stand_name }}</td>
-                                <td class="px-6 py-3 text-xs text-slate-500">{{ order.items_summary }}</td>
-                                <td class="px-6 py-3 text-xs font-bold">{{ order.status }}</td>
-                                <td class="px-6 py-3 text-right font-black text-slate-900">{{ formatRupiah(order.total_price) }}</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
+            <!-- Recent Orders -->
+            <div class="space-y-3">
+                <h3 class="text-base font-bold text-ink px-1">Transaksi Kantin Terbaru</h3>
+                <DataTable
+                    :columns="orderColumns"
+                    :items="recentOrders"
+                    empty-title="Belum Ada Transaksi"
+                    empty-message="Belum ada transaksi pembelian pada rentang tanggal yang dipilih."
+                >
+                    <template #cell(qr_code_pickup)="{ value }">
+                        <span class="font-mono text-xs font-bold text-brand-700">{{ value }}</span>
+                    </template>
+
+                    <template #cell(student_name)="{ value }">
+                        <span class="text-xs font-bold text-ink">{{ value }}</span>
+                    </template>
+
+                    <template #cell(stand_name)="{ value }">
+                        <span class="text-xs text-ink-muted">{{ value }}</span>
+                    </template>
+
+                    <template #cell(items_summary)="{ value }">
+                        <span class="text-xs text-ink-muted truncate max-w-xs block">{{ value }}</span>
+                    </template>
+
+                    <template #cell(status)="{ value }">
+                        <div class="flex justify-center">
+                            <StatusBadge :variant="value === 'Selesai' ? 'success' : 'warning'" size="sm">
+                                {{ value }}
+                            </StatusBadge>
+                        </div>
+                    </template>
+
+                    <template #cell(total_price)="{ value }">
+                        <span class="text-xs font-black text-ink font-numeric">
+                            <MoneyText :amount="value" />
+                        </span>
+                    </template>
+                </DataTable>
             </div>
         </div>
-    </BendaharaLayout>
+    </PortalShell>
 </template>
-

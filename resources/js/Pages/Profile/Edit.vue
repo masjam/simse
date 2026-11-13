@@ -1,56 +1,49 @@
 <script setup>
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import { Head } from '@inertiajs/vue3';
+import PortalShell from '@/Layouts/PortalShell.vue';
+import PageHeader from '@/Components/ui/PageHeader.vue';
+import AppCard from '@/Components/ui/AppCard.vue';
 import DeleteUserForm from './Partials/DeleteUserForm.vue';
 import UpdatePasswordForm from './Partials/UpdatePasswordForm.vue';
 import UpdateProfileInformationForm from './Partials/UpdateProfileInformationForm.vue';
-import { Head } from '@inertiajs/vue3';
 
 defineProps({
     mustVerifyEmail: {
         type: Boolean,
+        default: false,
     },
     status: {
         type: String,
+        default: null,
     },
 });
 </script>
 
 <template>
-    <Head title="Profile" />
+    <Head title="Pengaturan Profil" />
 
-    <AuthenticatedLayout>
-        <template #header>
-            <h2
-                class="text-xl font-semibold leading-tight text-gray-800"
-            >
-                Profile
-            </h2>
-        </template>
+    <PortalShell variant="sidebar">
+        <div class="space-y-6 max-w-4xl">
+            <PageHeader
+                title="Profil Pengguna"
+                subtitle="Kelola informasi akun, kata sandi, dan preferensi keamanan Anda"
+            />
 
-        <div class="py-12">
-            <div class="mx-auto max-w-7xl space-y-6 sm:px-6 lg:px-8">
-                <div
-                    class="bg-white p-4 shadow sm:rounded-lg sm:p-8"
-                >
-                    <UpdateProfileInformationForm
-                        :must-verify-email="mustVerifyEmail"
-                        :status="status"
-                        class="max-w-xl"
-                    />
-                </div>
+            <AppCard>
+                <UpdateProfileInformationForm
+                    :must-verify-email="mustVerifyEmail"
+                    :status="status"
+                    class="max-w-xl"
+                />
+            </AppCard>
 
-                <div
-                    class="bg-white p-4 shadow sm:rounded-lg sm:p-8"
-                >
-                    <UpdatePasswordForm class="max-w-xl" />
-                </div>
+            <AppCard>
+                <UpdatePasswordForm class="max-w-xl" />
+            </AppCard>
 
-                <div
-                    class="bg-white p-4 shadow sm:rounded-lg sm:p-8"
-                >
-                    <DeleteUserForm class="max-w-xl" />
-                </div>
-            </div>
+            <AppCard>
+                <DeleteUserForm class="max-w-xl" />
+            </AppCard>
         </div>
-    </AuthenticatedLayout>
+    </PortalShell>
 </template>

@@ -2,6 +2,12 @@
 import { Head } from '@inertiajs/vue3';
 import axios from 'axios';
 import { onMounted, onUnmounted, ref } from 'vue';
+import PortalShell from '@/Layouts/PortalShell.vue';
+import AppCard from '@/Components/ui/AppCard.vue';
+import AppInput from '@/Components/ui/AppInput.vue';
+import AppButton from '@/Components/ui/AppButton.vue';
+import StatusBadge from '@/Components/ui/StatusBadge.vue';
+import EmptyState from '@/Components/ui/EmptyState.vue';
 
 const props = defineProps({
     device: { type: Object, required: true },
@@ -27,7 +33,7 @@ const updateClock = () => {
 };
 
 const focusInput = () => {
-    inputEl.value?.focus();
+    inputEl.value?.$el?.focus?.() || inputEl.value?.focus?.();
 };
 
 onMounted(() => {
@@ -69,96 +75,119 @@ const submitTap = async () => {
         focusInput();
     }
 };
+
+const statusVariant = (status) => {
+    if (status === 'Hadir') return 'success';
+    if (status === 'Terlambat') return 'warning';
+    return 'danger';
+};
 </script>
 
 <template>
     <Head title="Kiosk Presensi Siswa (RFID)" />
 
-    <div class="min-h-screen bg-gradient-to-br from-slate-950 via-teal-950 to-emerald-950 text-white p-6 sm:p-10 flex flex-col justify-between" @click="focusInput">
-        <header class="max-w-6xl w-full mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/15 pb-5">
-            <div>
-                <p class="text-xs font-bold uppercase tracking-widest text-emerald-300">SD Muhammadiyah Al Mujahidin Wonosari</p>
-                <h1 class="text-2xl sm:text-3xl font-black mt-1">Kiosk Presensi Siswa RFID</h1>
-                <p class="text-xs text-slate-300 mt-1">
-                    Perangkat: <strong>{{ device.name }}</strong> ({{ device.mac_address }}) &middot; {{ device.location }}
-                </p>
-            </div>
-            <div class="text-left sm:text-right">
-                <p class="text-3xl sm:text-4xl font-black font-mono text-amber-300">{{ nowString }}</p>
-                <p class="text-xs text-slate-300">
-                    {{ new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) }}
-                </p>
-            </div>
-        </header>
-
-        <main class="max-w-6xl w-full mx-auto grid lg:grid-cols-2 gap-8 my-8">
-            <div class="bg-white/10 backdrop-blur-md border border-white/15 rounded-3xl p-6 sm:p-8 flex flex-col justify-center space-y-5">
+    <PortalShell variant="bare">
+        <div class="min-h-screen bg-surface-sunken p-6 sm:p-10 flex flex-col justify-between" @click="focusInput">
+            <!-- Header -->
+            <header class="max-w-6xl w-full mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-line pb-5">
                 <div>
-                    <h2 class="text-xl font-extrabold">Tempelkan Kartu Siswa (RFID)</h2>
-                    <p class="text-sm text-emerald-100/80 mt-1">Reader USB otomatis membaca kartu saat ditempelkan.</p>
-                </div>
-
-                <form class="flex gap-2" @submit.prevent="submitTap">
-                    <input
-                        ref="inputEl"
-                        v-model="rfidInput"
-                        type="text"
-                        autofocus
-                        class="flex-1 rounded-2xl bg-slate-900/80 border-white/20 text-white font-mono text-lg px-4 py-3 focus:ring-emerald-400"
-                        placeholder="Tap kartu RFID di sini..."
-                    />
-                    <button
-                        type="submit"
-                        :disabled="processing"
-                        class="px-5 py-3 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-sm transition"
-                    >
-                        Tap
-                    </button>
-                </form>
-
-                <div v-if="errorMessage" class="p-4 rounded-2xl bg-rose-500/20 border border-rose-400/40 text-rose-100 text-sm font-bold">
-                    {{ errorMessage }}
-                </div>
-
-                <div v-if="lastResult" class="p-5 rounded-2xl bg-emerald-500/20 border border-emerald-400/40 space-y-1.5">
-                    <p class="text-xs font-bold uppercase tracking-wider text-emerald-300">
-                        Presensi {{ lastResult.record?.mode }} Berhasil
+                    <p class="text-xs font-bold uppercase tracking-widest text-brand-700">SD Muhammadiyah Al Mujahidin Wonosari</p>
+                    <h1 class="text-2xl sm:text-3xl font-extrabold text-ink mt-1">Kiosk Presensi Siswa RFID</h1>
+                    <p class="text-xs text-ink-muted mt-1">
+                        Perangkat: <strong class="text-ink">{{ device.name }}</strong> ({{ device.mac_address }}) &middot; {{ device.location }}
                     </p>
-                    <p class="text-xl font-black">{{ lastResult.record?.student_name }}</p>
-                    <p class="text-sm text-emerald-100">
-                        Kelas {{ lastResult.record?.class_name }} &middot; Status: <strong>{{ lastResult.record?.attendance_status }}</strong>
+                </div>
+                <div class="text-left sm:text-right">
+                    <p class="text-3xl sm:text-4xl font-extrabold font-numeric text-brand-700">{{ nowString }}</p>
+                    <p class="text-xs text-ink-muted">
+                        {{ new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) }}
                     </p>
-                    <p class="text-xs text-emerald-200">{{ lastResult.message }}</p>
                 </div>
-            </div>
+            </header>
 
-            <div class="bg-white/10 backdrop-blur-md border border-white/15 rounded-3xl p-6 space-y-4">
-                <h2 class="text-lg font-extrabold">Presensi Terbaru Hari Ini</h2>
-                <div v-if="attendances.length === 0" class="py-10 text-center text-sm text-slate-300">
-                    Belum ada siswa yang tap kartu hari ini.
-                </div>
-                <div v-else class="space-y-2.5 max-h-[380px] overflow-y-auto pr-1">
-                    <div
-                        v-for="item in attendances"
-                        :key="item.id"
-                        class="p-3.5 rounded-2xl bg-slate-900/60 border border-white/10 flex items-center justify-between gap-3"
-                    >
-                        <div>
-                            <p class="font-bold text-sm">{{ item.student_name }}</p>
-                            <p class="text-xs text-slate-300">Kelas {{ item.class_name }} &middot; {{ item.attendance_status || item.status }}</p>
-                        </div>
-                        <div class="text-right text-xs font-mono">
-                            <p class="text-emerald-300">Masuk: {{ item.time_in }}</p>
-                            <p v-if="item.time_out" class="text-amber-300">Pulang: {{ item.time_out }}</p>
+            <!-- Main Workspace -->
+            <main class="max-w-6xl w-full mx-auto grid lg:grid-cols-2 gap-8 my-8">
+                <!-- Reader Card -->
+                <AppCard class="flex flex-col justify-center space-y-5">
+                    <div>
+                        <h2 class="text-xl font-bold text-ink">Tempelkan Kartu Siswa (RFID)</h2>
+                        <p class="text-xs text-ink-muted mt-1">Reader USB otomatis membaca kartu saat ditempelkan.</p>
+                    </div>
+
+                    <form class="flex gap-2" @submit.prevent="submitTap">
+                        <AppInput
+                            ref="inputEl"
+                            v-model="rfidInput"
+                            type="text"
+                            autofocus
+                            placeholder="Tap kartu RFID di sini..."
+                            class="flex-1 font-numeric text-lg tracking-wider"
+                        />
+                        <AppButton
+                            type="submit"
+                            variant="primary"
+                            size="lg"
+                            :loading="processing"
+                        >
+                            Tap
+                        </AppButton>
+                    </form>
+
+                    <div v-if="errorMessage" class="p-4 rounded-control bg-status-danger-bg text-status-danger-fg border border-status-danger-line text-xs font-bold">
+                        {{ errorMessage }}
+                    </div>
+
+                    <div v-if="lastResult" class="p-5 rounded-control bg-status-success-bg border border-status-success-line text-status-success-fg space-y-1.5">
+                        <p class="text-xs font-bold uppercase tracking-wider">
+                            Presensi {{ lastResult.record?.mode }} Berhasil
+                        </p>
+                        <p class="text-xl font-bold">{{ lastResult.record?.student_name }}</p>
+                        <p class="text-xs">
+                            Kelas {{ lastResult.record?.class_name }} &middot; Status: <strong>{{ lastResult.record?.attendance_status }}</strong>
+                        </p>
+                        <p class="text-xs opacity-90">{{ lastResult.message }}</p>
+                    </div>
+                </AppCard>
+
+                <!-- Recent Attendance List -->
+                <AppCard class="space-y-4">
+                    <h2 class="text-base font-bold text-ink">Presensi Terbaru Hari Ini</h2>
+                    <div v-if="attendances.length === 0" class="py-10">
+                        <EmptyState
+                            title="Belum ada presensi"
+                            description="Belum ada siswa yang tap kartu presensi hari ini."
+                        />
+                    </div>
+                    <div v-else class="space-y-2.5 max-h-[380px] overflow-y-auto pr-1">
+                        <div
+                            v-for="item in attendances"
+                            :key="item.id"
+                            class="p-3.5 rounded-control bg-surface-raised border border-line flex items-center justify-between gap-3"
+                        >
+                            <div>
+                                <p class="font-bold text-sm text-ink">{{ item.student_name }}</p>
+                                <div class="flex items-center gap-2 mt-0.5">
+                                    <span class="text-xs text-ink-muted">Kelas {{ item.class_name }}</span>
+                                    <StatusBadge
+                                        :variant="statusVariant(item.attendance_status || item.status)"
+                                        :text="item.attendance_status || item.status"
+                                        size="sm"
+                                    />
+                                </div>
+                            </div>
+                            <div class="text-right text-xs font-numeric text-ink-muted">
+                                <p class="text-status-success-fg font-semibold">Masuk: {{ item.time_in }}</p>
+                                <p v-if="item.time_out" class="text-status-warning-fg font-semibold">Pulang: {{ item.time_out }}</p>
+                            </div>
                         </div>
                     </div>
-                </div>
-            </div>
-        </main>
+                </AppCard>
+            </main>
 
-        <footer class="max-w-6xl w-full mx-auto text-center text-xs text-slate-400">
-            SIMSE &middot; Kiosk Terkunci Perangkat Terotorisasi
-        </footer>
-    </div>
+            <!-- Footer -->
+            <footer class="max-w-6xl w-full mx-auto text-center text-xs text-ink-muted">
+                SIMSE &middot; Kiosk Presensi Mandiri SD Muhammadiyah Al Mujahidin
+            </footer>
+        </div>
+    </PortalShell>
 </template>
-

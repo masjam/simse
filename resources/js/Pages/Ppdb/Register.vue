@@ -1,8 +1,30 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted, watch } from 'vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
+import PortalShell from '@/Layouts/PortalShell.vue';
+import AppCard from '@/Components/ui/AppCard.vue';
+import Stepper from '@/Components/ui/Stepper.vue';
+import FormField from '@/Components/ui/FormField.vue';
+import AppInput from '@/Components/ui/AppInput.vue';
+import AppSelect from '@/Components/ui/AppSelect.vue';
+import AppTextarea from '@/Components/ui/AppTextarea.vue';
+import FileInput from '@/Components/ui/FileInput.vue';
+import AppButton from '@/Components/ui/AppButton.vue';
+import { useToast } from '@/composables/useToast';
 
+const toast = useToast();
 const currentStep = ref(1);
+
+const steps = [
+    { title: 'Data Siswa', description: 'Biodata calon peserta didik' },
+    { title: 'Data Orang Tua', description: 'Kontak wali & verifikasi WA' },
+    { title: 'Unggah Berkas', description: 'Dokumen KK & Akta' },
+];
+
+const genderOptions = [
+    { value: 'L', label: 'Laki-laki' },
+    { value: 'P', label: 'Perempuan' },
+];
 
 const form = useForm({
     student_name: '',
@@ -22,23 +44,63 @@ const form = useForm({
     ijazah_file: null,
 });
 
-const onFileChange = (field, event) => {
-    const file = event.target.files[0];
-    if (file) {
-        form[field] = file;
+// Autosave non-file fields to localStorage
+const STORAGE_KEY = 'simse_ppdb_draft';
+onMounted(() => {
+    try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+            const data = JSON.parse(saved);
+            Object.keys(data).forEach((k) => {
+                if (k in form && !k.endsWith('_file')) {
+                    form[k] = data[k];
+                }
+            });
+        }
+    } catch {
+        // ignore parse error
     }
+});
+
+watch(
+    () => ({
+        student_name: form.student_name,
+        nik: form.nik,
+        nisn: form.nisn,
+        gender: form.gender,
+        birth_place: form.birth_place,
+        birth_date: form.birth_date,
+        address: form.address,
+        previous_school: form.previous_school,
+        parent_name: form.parent_name,
+        parent_phone: form.parent_phone,
+        parent_email: form.parent_email,
+        parent_job: form.parent_job,
+    }),
+    (val) => {
+        try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(val));
+        } catch {
+            // ignore storage full
+        }
+    },
+    { deep: true }
+);
+
+const onFileChange = (field, file) => {
+    form[field] = file;
 };
 
 const goToStep = (step) => {
     if (step === 2) {
         if (!form.student_name || !form.nik || !form.gender || !form.birth_place || !form.birth_date || !form.address) {
-            alert('Mohon lengkapi data calon siswa yang berbintang merah terlebih dahulu.');
+            toast.error('Mohon lengkapi data calon siswa yang berbintang wajib terlebih dahulu.');
             return;
         }
     }
     if (step === 3) {
         if (!form.parent_name || !form.parent_phone) {
-            alert('Mohon lengkapi nama orang tua dan nomor WhatsApp aktif.');
+            toast.error('Mohon lengkapi nama orang tua dan nomor WhatsApp aktif.');
             return;
         }
     }
@@ -48,6 +110,13 @@ const goToStep = (step) => {
 const submit = () => {
     form.post(route('ppdb.store'), {
         preserveScroll: true,
+        onSuccess: () => {
+            try {
+                localStorage.removeItem(STORAGE_KEY);
+            } catch {
+                // ignore
+            }
+        },
     });
 };
 </script>
@@ -55,318 +124,225 @@ const submit = () => {
 <template>
     <Head title="Pendaftaran Siswa Baru (PPDB Online) - SD Muhammadiyah Al Mujahidin" />
 
-    <div class="min-h-screen bg-slate-950 text-slate-100 py-12 px-4 sm:px-6 lg:px-8">
-        <div class="max-w-3xl mx-auto">
-            <!-- HEADER -->
-            <div class="text-center mb-8">
-                <Link :href="route('home')" class="inline-flex items-center gap-2 text-emerald-400 hover:text-emerald-300 text-sm font-semibold mb-4">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
-                    <span>Kembali ke Beranda Utama</span>
-                </Link>
-                <h1 class="text-3xl font-extrabold text-white tracking-tight sm:text-4xl">
-                    Penerimaan Peserta Didik Baru (PPDB)
-                </h1>
-                <p class="mt-2 text-sm text-slate-400">
-                    SD Muhammadiyah Al Mujahidin Wonosari • Tahun Ajaran 2026/2027
-                </p>
+    <PortalShell variant="bare">
+        <div class="min-h-screen bg-surface-sunken py-10 px-4 sm:px-6 lg:px-8">
+            <div class="max-w-3xl mx-auto space-y-6">
+                <!-- Header -->
+                <div class="text-center space-y-2">
+                    <Link :href="route('welcome')" class="inline-flex items-center gap-1.5 text-brand-700 hover:text-brand-800 text-xs font-bold mb-2">
+                        <span>← Kembali ke Beranda Utama</span>
+                    </Link>
+                    <h1 class="text-2xl sm:text-3xl font-extrabold text-ink">
+                        Penerimaan Peserta Didik Baru (PPDB)
+                    </h1>
+                    <p class="text-xs text-ink-muted">
+                        SD Muhammadiyah Al Mujahidin Wonosari • Tahun Ajaran 2026/2027
+                    </p>
+                </div>
+
+                <!-- Stepper -->
+                <AppCard class="shadow-card">
+                    <Stepper :current-step="currentStep" :steps="steps" />
+                </AppCard>
+
+                <!-- Form Card -->
+                <AppCard class="shadow-card">
+                    <form @submit.prevent="submit" class="space-y-6">
+                        <!-- Step 1: Calon Siswa -->
+                        <div v-show="currentStep === 1" class="space-y-4">
+                            <div class="border-b border-line pb-3">
+                                <h2 class="text-base font-bold text-ink">Biodata Calon Siswa</h2>
+                                <p class="text-xs text-ink-muted">Masukkan data calon peserta didik sesuai Kartu Keluarga / Akta Kelahiran.</p>
+                            </div>
+
+                            <FormField label="Nama Lengkap Siswa" :error="form.errors.student_name" required>
+                                <AppInput
+                                    v-model="form.student_name"
+                                    placeholder="Contoh: Muhammad Fatih Al-Mujahidin"
+                                    required
+                                />
+                            </FormField>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <FormField label="NIK (16 Digit)" :error="form.errors.nik" required>
+                                    <AppInput
+                                        v-model="form.nik"
+                                        maxlength="16"
+                                        placeholder="3403xxxxxxxxxxxx"
+                                        required
+                                    />
+                                </FormField>
+                                <FormField label="NISN (Jika sudah ada dari TK)" :error="form.errors.nisn">
+                                    <AppInput
+                                        v-model="form.nisn"
+                                        maxlength="10"
+                                        placeholder="0123456789"
+                                    />
+                                </FormField>
+                            </div>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                <FormField label="Jenis Kelamin" :error="form.errors.gender" required>
+                                    <AppSelect
+                                        v-model="form.gender"
+                                        :options="genderOptions"
+                                        required
+                                    />
+                                </FormField>
+                                <FormField label="Tempat Lahir" :error="form.errors.birth_place" required>
+                                    <AppInput
+                                        v-model="form.birth_place"
+                                        placeholder="Gunungkidul"
+                                        required
+                                    />
+                                </FormField>
+                                <FormField label="Tanggal Lahir" :error="form.errors.birth_date" required>
+                                    <AppInput
+                                        v-model="form.birth_date"
+                                        type="date"
+                                        required
+                                    />
+                                </FormField>
+                            </div>
+
+                            <FormField label="Alamat Tempat Tinggal" :error="form.errors.address" required>
+                                <AppTextarea
+                                    v-model="form.address"
+                                    :rows="2"
+                                    placeholder="Jl. KH. Agus Salim No. 12, Wonosari"
+                                    required
+                                />
+                            </FormField>
+
+                            <FormField label="Asal Sekolah TK / PAUD" :error="form.errors.previous_school">
+                                <AppInput
+                                    v-model="form.previous_school"
+                                    placeholder="Contoh: TK ABA Wonosari I"
+                                />
+                            </FormField>
+
+                            <div class="flex justify-end pt-4 border-t border-line">
+                                <AppButton
+                                    type="button"
+                                    variant="primary"
+                                    @click="goToStep(2)"
+                                >
+                                    Lanjut ke Data Orang Tua →
+                                </AppButton>
+                            </div>
+                        </div>
+
+                        <!-- Step 2: Data Orang Tua -->
+                        <div v-show="currentStep === 2" class="space-y-4">
+                            <div class="border-b border-line pb-3">
+                                <h2 class="text-base font-bold text-ink">Data Orang Tua / Wali</h2>
+                                <p class="text-xs text-ink-muted">Informasi kontak ayah / ibu untuk koordinasi dan verifikasi WhatsApp.</p>
+                            </div>
+
+                            <FormField label="Nama Lengkap Orang Tua / Wali" :error="form.errors.parent_name" required>
+                                <AppInput
+                                    v-model="form.parent_name"
+                                    placeholder="Contoh: Bambang Hermanto, S.T."
+                                    required
+                                />
+                            </FormField>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <FormField label="No. WhatsApp Aktif (Penting)" help="Notifikasi nomor registrasi akan dikirim ke WhatsApp ini" :error="form.errors.parent_phone" required>
+                                    <AppInput
+                                        v-model="form.parent_phone"
+                                        type="tel"
+                                        placeholder="081234567890"
+                                        required
+                                    />
+                                </FormField>
+                                <FormField label="Email Orang Tua (Opsional)" :error="form.errors.parent_email">
+                                    <AppInput
+                                        v-model="form.parent_email"
+                                        type="email"
+                                        placeholder="ortu@gmail.com"
+                                    />
+                                </FormField>
+                            </div>
+
+                            <FormField label="Pekerjaan Orang Tua" :error="form.errors.parent_job">
+                                <AppInput
+                                    v-model="form.parent_job"
+                                    placeholder="PNS / Swasta / Wiraswasta"
+                                />
+                            </FormField>
+
+                            <div class="flex justify-between pt-4 border-t border-line">
+                                <AppButton
+                                    type="button"
+                                    variant="secondary"
+                                    @click="goToStep(1)"
+                                >
+                                    ← Kembali
+                                </AppButton>
+                                <AppButton
+                                    type="button"
+                                    variant="primary"
+                                    @click="goToStep(3)"
+                                >
+                                    Lanjut ke Berkas Persyaratan →
+                                </AppButton>
+                            </div>
+                        </div>
+
+                        <!-- Step 3: Berkas Persyaratan -->
+                        <div v-show="currentStep === 3" class="space-y-4">
+                            <div class="border-b border-line pb-3">
+                                <h2 class="text-base font-bold text-ink">Unggah Berkas Persyaratan</h2>
+                                <p class="text-xs text-ink-muted">Format yang diterima: PDF, JPG, PNG (Maksimal 2 MB per berkas). Dokumen terproteksi disk privat.</p>
+                            </div>
+
+                            <FormField label="Scan Kartu Keluarga (KK)" help="Pastikan NIK dan nama calon siswa terbaca jelas">
+                                <FileInput
+                                    accept=".pdf,.jpg,.jpeg,.png"
+                                    @change="(f) => onFileChange('kk_file', f)"
+                                />
+                            </FormField>
+
+                            <FormField label="Scan Akta Kelahiran" help="Akta kelahiran resmi dari Dinas Dukcapil">
+                                <FileInput
+                                    accept=".pdf,.jpg,.jpeg,.png"
+                                    @change="(f) => onFileChange('birth_certificate_file', f)"
+                                />
+                            </FormField>
+
+                            <FormField label="Ijazah / Surat Keterangan TK (Opsional)" help="Dapat disusulkan jika belum diterbitkan oleh pihak TK">
+                                <FileInput
+                                    accept=".pdf,.jpg,.jpeg,.png"
+                                    @change="(f) => onFileChange('ijazah_file', f)"
+                                />
+                            </FormField>
+
+                            <div class="p-3 rounded-control bg-status-warning-bg text-status-warning-fg border border-status-warning-line text-xs leading-relaxed">
+                                Dengan menekan tombol "Kirim Pendaftaran", saya menyatakan data yang diisi adalah benar dan sah. Panitia PPDB berhak memverifikasi keabsahan dokumen.
+                            </div>
+
+                            <div class="flex justify-between pt-4 border-t border-line">
+                                <AppButton
+                                    type="button"
+                                    variant="secondary"
+                                    @click="goToStep(2)"
+                                >
+                                    ← Kembali
+                                </AppButton>
+                                <AppButton
+                                    type="submit"
+                                    variant="primary"
+                                    size="lg"
+                                    :loading="form.processing"
+                                >
+                                    Kirim Pendaftaran Sekarang
+                                </AppButton>
+                            </div>
+                        </div>
+                    </form>
+                </AppCard>
             </div>
-
-            <!-- STEP WIZARD INDICATOR -->
-            <div class="mb-8 bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-6 shadow-xl">
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-3">
-                        <div 
-                            class="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm transition-all"
-                            :class="currentStep === 1 ? 'bg-emerald-500 text-white ring-4 ring-emerald-500/20' : (currentStep > 1 ? 'bg-emerald-950 text-emerald-400 border border-emerald-500/40' : 'bg-slate-800 text-slate-400')"
-                        >
-                            1
-                        </div>
-                        <div class="hidden sm:block">
-                            <p class="text-xs text-slate-400">Langkah 1</p>
-                            <p class="text-sm font-semibold text-white">Data Calon Siswa</p>
-                        </div>
-                    </div>
-
-                    <div class="h-0.5 w-12 sm:w-20 bg-slate-800" :class="currentStep >= 2 ? '!bg-emerald-500' : ''"></div>
-
-                    <div class="flex items-center gap-3">
-                        <div 
-                            class="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm transition-all"
-                            :class="currentStep === 2 ? 'bg-emerald-500 text-white ring-4 ring-emerald-500/20' : (currentStep > 2 ? 'bg-emerald-950 text-emerald-400 border border-emerald-500/40' : 'bg-slate-800 text-slate-400')"
-                        >
-                            2
-                        </div>
-                        <div class="hidden sm:block">
-                            <p class="text-xs text-slate-400">Langkah 2</p>
-                            <p class="text-sm font-semibold text-white">Data Orang Tua</p>
-                        </div>
-                    </div>
-
-                    <div class="h-0.5 w-12 sm:w-20 bg-slate-800" :class="currentStep >= 3 ? '!bg-emerald-500' : ''"></div>
-
-                    <div class="flex items-center gap-3">
-                        <div 
-                            class="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm transition-all"
-                            :class="currentStep === 3 ? 'bg-emerald-500 text-white ring-4 ring-emerald-500/20' : 'bg-slate-800 text-slate-400'"
-                        >
-                            3
-                        </div>
-                        <div class="hidden sm:block">
-                            <p class="text-xs text-slate-400">Langkah 3</p>
-                            <p class="text-sm font-semibold text-white">Unggah Berkas</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- FORM CARD -->
-            <form @submit.prevent="submit" class="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
-                <!-- STEP 1: CALON SISWA -->
-                <div v-show="currentStep === 1" class="space-y-5">
-                    <div class="border-b border-slate-800 pb-4">
-                        <h2 class="text-lg font-bold text-white">Biodata Calon Siswa</h2>
-                        <p class="text-xs text-slate-400">Masukkan data calon peserta didik sesuai Kartu Keluarga / Akta Kelahiran.</p>
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-300 mb-1">Nama Lengkap Siswa *</label>
-                        <input 
-                            v-model="form.student_name" 
-                            type="text" 
-                            required 
-                            placeholder="Contoh: Muhammad Fatih Al-Mujahidin"
-                            class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                        />
-                        <p v-if="form.errors.student_name" class="mt-1 text-xs text-red-400">{{ form.errors.student_name }}</p>
-                    </div>
-
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-300 mb-1">NIK (16 Digit) *</label>
-                            <input 
-                                v-model="form.nik" 
-                                type="text" 
-                                maxlength="16" 
-                                required 
-                                placeholder="3403xxxxxxxxxxxx"
-                                class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                            />
-                            <p v-if="form.errors.nik" class="mt-1 text-xs text-red-400">{{ form.errors.nik }}</p>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-300 mb-1">NISN (Jika sudah ada dari TK)</label>
-                            <input 
-                                v-model="form.nisn" 
-                                type="text" 
-                                maxlength="10" 
-                                placeholder="0123456789"
-                                class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                            />
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-300 mb-1">Jenis Kelamin *</label>
-                            <select 
-                                v-model="form.gender" 
-                                required 
-                                class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                            >
-                                <option value="L">Laki-laki</option>
-                                <option value="P">Perempuan</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-300 mb-1">Tempat Lahir *</label>
-                            <input 
-                                v-model="form.birth_place" 
-                                type="text" 
-                                required 
-                                placeholder="Gunungkidul"
-                                class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                            />
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-300 mb-1">Tanggal Lahir *</label>
-                            <input 
-                                v-model="form.birth_date" 
-                                type="date" 
-                                required 
-                                class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                            />
-                        </div>
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-300 mb-1">Alamat Tempat Tinggal *</label>
-                        <textarea 
-                            v-model="form.address" 
-                            rows="2" 
-                            required 
-                            placeholder="Jl. KH. Agus Salim No. 12, Gadungsari, Wonosari"
-                            class="w-full px-4 py-2 rounded-xl bg-slate-950 border border-slate-800 text-white text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                        ></textarea>
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-300 mb-1">Asal Sekolah TK / PAUD</label>
-                        <input 
-                            v-model="form.previous_school" 
-                            type="text" 
-                            placeholder="Contoh: TK ABA Wonosari I"
-                            class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                        />
-                    </div>
-
-                    <div class="flex justify-end pt-4">
-                        <button 
-                            type="button" 
-                            @click="goToStep(2)"
-                            class="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-sm shadow-lg shadow-emerald-600/30 transition-all flex items-center gap-2"
-                        >
-                            <span>Lanjut ke Data Orang Tua</span>
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- STEP 2: DATA ORANG TUA -->
-                <div v-show="currentStep === 2" class="space-y-5">
-                    <div class="border-b border-slate-800 pb-4">
-                        <h2 class="text-lg font-bold text-white">Data Orang Tua / Wali</h2>
-                        <p class="text-xs text-slate-400">Informasi kontak ayah / ibu untuk koordinasi dan verifikasi WhatsApp.</p>
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-300 mb-1">Nama Lengkap Orang Tua / Wali *</label>
-                        <input 
-                            v-model="form.parent_name" 
-                            type="text" 
-                            required 
-                            placeholder="Contoh: Bambang Hermanto, S.T."
-                            class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                        />
-                    </div>
-
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-300 mb-1">No. WhatsApp Aktif * (Penting)</label>
-                            <input 
-                                v-model="form.parent_phone" 
-                                type="text" 
-                                required 
-                                placeholder="Contoh: 081234567890"
-                                class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                            />
-                            <p class="text-[11px] text-emerald-400/80 mt-1">Notifikasi nomor pendaftaran dan hasil seleksi akan dikirim ke nomor ini.</p>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-300 mb-1">Email Orang Tua (Opsional)</label>
-                            <input 
-                                v-model="form.parent_email" 
-                                type="email" 
-                                placeholder="ortu@gmail.com"
-                                class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                            />
-                        </div>
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-300 mb-1">Pekerjaan Orang Tua</label>
-                        <input 
-                            v-model="form.parent_job" 
-                            type="text" 
-                            placeholder="Contoh: PNS / Wiraswasta / Karyawan Swasta"
-                            class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                        />
-                    </div>
-
-                    <div class="flex justify-between pt-4">
-                        <button 
-                            type="button" 
-                            @click="goToStep(1)"
-                            class="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium text-sm transition-all"
-                        >
-                            Kembali
-                        </button>
-                        <button 
-                            type="button" 
-                            @click="goToStep(3)"
-                            class="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-sm shadow-lg shadow-emerald-600/30 transition-all flex items-center gap-2"
-                        >
-                            <span>Lanjut ke Berkas Persyaratan</span>
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- STEP 3: BERKAS PERSYARATAN -->
-                <div v-show="currentStep === 3" class="space-y-5">
-                    <div class="border-b border-slate-800 pb-4">
-                        <h2 class="text-lg font-bold text-white">Unggah Berkas Persyaratan</h2>
-                        <p class="text-xs text-slate-400">Format yang diterima: PDF, JPG, PNG (Maksimal 2 MB per berkas). Dokumen disimpan secara terproteksi.</p>
-                    </div>
-
-                    <div class="space-y-4">
-                        <div class="p-4 rounded-2xl bg-slate-950 border border-slate-800">
-                            <label class="block text-xs font-bold text-white mb-1">1. Scan Kartu Keluarga (KK)</label>
-                            <p class="text-[11px] text-slate-400 mb-2">Pastikan NIK dan nama calon siswa terbaca jelas.</p>
-                            <input 
-                                type="file" 
-                                accept=".pdf,.jpg,.jpeg,.png"
-                                @change="onFileChange('kk_file', $event)"
-                                class="text-xs text-slate-400 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-emerald-600 file:text-white hover:file:bg-emerald-500"
-                            />
-                        </div>
-
-                        <div class="p-4 rounded-2xl bg-slate-950 border border-slate-800">
-                            <label class="block text-xs font-bold text-white mb-1">2. Scan Akta Kelahiran</label>
-                            <p class="text-[11px] text-slate-400 mb-2">Akta kelahiran resmi dari Dinas Dukcapil.</p>
-                            <input 
-                                type="file" 
-                                accept=".pdf,.jpg,.jpeg,.png"
-                                @change="onFileChange('birth_certificate_file', $event)"
-                                class="text-xs text-slate-400 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-emerald-600 file:text-white hover:file:bg-emerald-500"
-                            />
-                        </div>
-
-                        <div class="p-4 rounded-2xl bg-slate-950 border border-slate-800">
-                            <label class="block text-xs font-bold text-white mb-1">3. Ijazah / Surat Keterangan TK (Opsional)</label>
-                            <p class="text-[11px] text-slate-400 mb-2">Dapat disusulkan jika belum diterbitkan oleh pihak TK.</p>
-                            <input 
-                                type="file" 
-                                accept=".pdf,.jpg,.jpeg,.png"
-                                @change="onFileChange('ijazah_file', $event)"
-                                class="text-xs text-slate-400 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-emerald-600 file:text-white hover:file:bg-emerald-500"
-                            />
-                        </div>
-                    </div>
-
-                    <div class="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-300 leading-relaxed">
-                        Dengan menekan tombol "Kirim Pendaftaran", saya menyatakan data yang diisi adalah benar dan sah. Panitia PPDB berhak memverifikasi keabsahan dokumen yang diunggah.
-                    </div>
-
-                    <div class="flex justify-between pt-4">
-                        <button 
-                            type="button" 
-                            @click="goToStep(2)"
-                            class="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium text-sm transition-all"
-                        >
-                            Kembali
-                        </button>
-                        <button 
-                            type="submit" 
-                            :disabled="form.processing"
-                            class="px-8 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-bold text-sm shadow-xl shadow-emerald-500/30 transition-all flex items-center gap-2 disabled:opacity-50"
-                        >
-                            <svg v-if="form.processing" class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>
-                            <span>{{ form.processing ? 'Mengirim Pendaftaran...' : 'Kirim Pendaftaran Sekarang' }}</span>
-                        </button>
-                    </div>
-                </div>
-            </form>
         </div>
-    </div>
+    </PortalShell>
 </template>
-

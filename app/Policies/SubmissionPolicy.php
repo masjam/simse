@@ -28,4 +28,22 @@ class SubmissionPolicy
 
         return false;
     }
+
+    /**
+     * Determine whether the teacher can grade/update the submission.
+     */
+    public function update(User $user, Submission $submission): bool
+    {
+        if ($user->hasRole('Super Admin')) {
+            return true;
+        }
+
+        if ($user->teacher) {
+            $submission->loadMissing('assignment.lesson');
+
+            return $submission->assignment?->lesson?->teacher_id === $user->teacher->id;
+        }
+
+        return false;
+    }
 }

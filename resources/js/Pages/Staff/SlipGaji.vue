@@ -1,18 +1,18 @@
 <script setup>
-import StaffLayout from '@/Layouts/StaffLayout.vue';
 import { Head } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import PortalShell from '@/Layouts/PortalShell.vue';
+import PageHeader from '@/Components/ui/PageHeader.vue';
+import AppCard from '@/Components/ui/AppCard.vue';
+import AppButton from '@/Components/ui/AppButton.vue';
+import StatusBadge from '@/Components/ui/StatusBadge.vue';
+import EmptyState from '@/Components/ui/EmptyState.vue';
+import MoneyText from '@/Components/domain/MoneyText.vue';
+import KopSurat from '@/Components/domain/KopSurat.vue';
 
-const props = defineProps({
+defineProps({
     slipGaji: { type: Object, default: null },
     payrollHistory: { type: Array, required: true },
 });
-
-const formatRupiah = (amount) => new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    minimumFractionDigits: 0,
-}).format(amount || 0);
 
 const printSlip = () => {
     window.print();
@@ -21,117 +21,140 @@ const printSlip = () => {
 
 <template>
     <Head title="Slip Gaji Saya" />
+    <PortalShell variant="sidebar">
+        <div class="space-y-6">
+            <PageHeader
+                title="Slip Gaji & Payroll Staf"
+                subtitle="Transparansi honorarium, tunjangan kehadiran GPS, dan potongan resmi SD Muhammadiyah Al Mujahidin"
+            />
 
-    <StaffLayout>
-        <template #header-title>
-            <h1 class="text-2xl font-black text-slate-800">Slip Gaji &amp; Payroll Staf</h1>
-        </template>
-        <template #header-subtitle>
-            <p class="text-slate-500 font-medium">Transparansi honor, tunjangan kehadiran GPS, dan potongan resmi</p>
-        </template>
+            <div v-if="!slipGaji" class="bg-surface rounded-card border border-line p-8 shadow-card max-w-3xl mx-auto">
+                <EmptyState
+                    title="Belum Ada Slip Gaji"
+                    description="Belum ada slip gaji yang diterbitkan untuk akun Anda pada periode ini. Silakan hubungi bagian keuangan/bendahara."
+                />
+            </div>
 
-        <div v-if="!slipGaji" class="bg-white border border-slate-200 rounded-3xl p-10 text-center text-sm text-slate-500 max-w-3xl mx-auto shadow-sm">
-            Belum ada slip gaji yang digenerate untuk akun Anda. Silakan hubungi Bendahara Sekolah.
+            <div v-else class="max-w-4xl mx-auto space-y-6">
+                <!-- Header Kartu Gaji Utama -->
+                <div class="bg-brand-700 text-white rounded-card p-6 sm:p-8 shadow-card flex flex-col sm:flex-row sm:items-center justify-between gap-4 print:hidden">
+                    <div>
+                        <p class="text-xs uppercase tracking-wider font-bold text-white/80">
+                            Total Gaji Bersih (Take Home Pay)
+                        </p>
+                        <h2 class="text-3xl sm:text-4xl font-black mt-1 font-numeric">
+                            <MoneyText :amount="slipGaji.totalSalary" />
+                        </h2>
+                        <p class="text-xs text-white/80 mt-1">
+                            Periode: {{ slipGaji.month }} • Status: <strong class="uppercase text-white">{{ slipGaji.status }}</strong>
+                        </p>
+                    </div>
+                    <AppButton
+                        variant="secondary"
+                        size="lg"
+                        class="shadow-card"
+                        @click="printSlip"
+                    >
+                        🖨️ Cetak / Simpan PDF
+                    </AppButton>
+                </div>
+
+                <!-- Rincian Slip Gaji Format Resmi -->
+                <AppCard class="space-y-6">
+                    <KopSurat compact />
+
+                    <div class="text-center pb-2">
+                        <h3 class="text-sm font-bold uppercase underline text-ink">
+                            SLIP GAJI TENAGA KEPENDIDIKAN
+                        </h3>
+                        <p class="text-xs text-ink-muted mt-0.5">Periode Pembayaran: {{ slipGaji.month }}</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs bg-surface-raised p-4 rounded-control border border-line">
+                        <div class="space-y-1">
+                            <div><span class="text-ink-muted">Nama Pegawai:</span> <strong class="text-ink ml-1">{{ slipGaji.name }}</strong></div>
+                            <div><span class="text-ink-muted">NIP / ID Staf:</span> <span class="font-mono text-ink ml-1">{{ slipGaji.nip }}</span></div>
+                        </div>
+                        <div class="space-y-1">
+                            <div><span class="text-ink-muted">Jabatan / Posisi:</span> <span class="text-ink ml-1">{{ slipGaji.jabatan }}</span></div>
+                            <div><span class="text-ink-muted">Tanggal Payroll:</span> <span class="text-ink ml-1">{{ slipGaji.paidDate }}</span></div>
+                        </div>
+                    </div>
+
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <!-- Komponen Penerimaan -->
+                        <div class="space-y-2">
+                            <h4 class="text-xs font-bold uppercase tracking-wider text-status-success-fg pb-1 border-b border-line">
+                                Penerimaan (Penghasilan)
+                            </h4>
+                            <div
+                                v-for="(item, idx) in slipGaji.earnings"
+                                :key="idx"
+                                class="flex justify-between text-xs py-1 text-ink"
+                            >
+                                <span class="text-ink-muted">{{ item.label }}</span>
+                                <span class="font-bold font-numeric"><MoneyText :amount="item.amount" /></span>
+                            </div>
+                        </div>
+
+                        <!-- Komponen Potongan -->
+                        <div class="space-y-2">
+                            <h4 class="text-xs font-bold uppercase tracking-wider text-status-danger-fg pb-1 border-b border-line">
+                                Potongan Resmi
+                            </h4>
+                            <div v-if="slipGaji.deductions.length === 0" class="text-xs text-ink-muted py-1">
+                                Tidak ada potongan pada periode ini.
+                            </div>
+                            <div
+                                v-else
+                                v-for="(item, idx) in slipGaji.deductions"
+                                :key="idx"
+                                class="flex justify-between text-xs py-1"
+                            >
+                                <span class="text-ink-muted">{{ item.label }}</span>
+                                <span class="font-bold text-status-danger-fg font-numeric">
+                                    - <MoneyText :amount="item.amount" />
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="pt-3 border-t border-line flex justify-between items-center bg-surface-raised p-4 rounded-control">
+                        <span class="text-xs font-bold text-ink uppercase">Gaji Bersih Diterima</span>
+                        <span class="text-lg font-black text-brand-700 font-numeric">
+                            <MoneyText :amount="slipGaji.totalSalary" />
+                        </span>
+                    </div>
+                </AppCard>
+
+                <!-- Riwayat Payroll Masa Lalu -->
+                <AppCard class="print:hidden space-y-4">
+                    <h3 class="font-bold text-ink text-sm">Riwayat Payroll Staf</h3>
+                    <div v-if="payrollHistory.length === 0" class="text-xs text-ink-muted text-center py-4">
+                        Belum ada riwayat slip gaji sebelumnya.
+                    </div>
+                    <div v-else class="divide-y divide-line">
+                        <div
+                            v-for="h in payrollHistory"
+                            :key="h.id"
+                            class="py-3 flex items-center justify-between text-xs"
+                        >
+                            <div class="space-y-0.5">
+                                <p class="font-bold text-ink">{{ h.month }}</p>
+                                <p class="text-ink-muted">{{ h.date }}</p>
+                            </div>
+                            <div class="text-right space-y-1">
+                                <p class="font-black text-ink font-numeric">
+                                    <MoneyText :amount="h.takeHome" />
+                                </p>
+                                <StatusBadge :variant="h.status === 'paid' ? 'success' : 'warning'" size="sm">
+                                    {{ h.status }}
+                                </StatusBadge>
+                            </div>
+                        </div>
+                    </div>
+                </AppCard>
+            </div>
         </div>
-
-        <div v-else class="max-w-4xl mx-auto space-y-6">
-            <!-- Header Kartu Gaji Utama -->
-            <div class="bg-gradient-to-br from-indigo-700 via-indigo-800 to-slate-900 rounded-3xl p-6 sm:p-8 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xl print:hidden">
-                <div>
-                    <p class="text-xs uppercase tracking-wider font-bold text-indigo-200">Gaji Bersih Diterima</p>
-                    <h2 class="text-3xl sm:text-4xl font-black mt-1">{{ formatRupiah(slipGaji.totalSalary) }}</h2>
-                    <p class="text-xs text-indigo-200 mt-1">Periode: {{ slipGaji.month }} &middot; Status: <strong class="uppercase">{{ slipGaji.status }}</strong></p>
-                </div>
-                <button
-                    type="button"
-                    class="px-5 py-2.5 bg-white text-indigo-900 hover:bg-indigo-50 font-extrabold text-xs rounded-xl shadow transition"
-                    @click="printSlip"
-                >
-                    Cetak / Simpan PDF
-                </button>
-            </div>
-
-            <!-- Rincian Slip Gaji Format Resmi -->
-            <div class="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">
-                <div class="text-center pb-6 border-b border-slate-100">
-                    <p class="text-xs font-bold uppercase tracking-wider text-indigo-700">SD Muhammadiyah Al Mujahidin Wonosari</p>
-                    <h3 class="text-xl font-black text-slate-900 mt-1">SLIP GAJI TENAGA KEPENDIDIKAN</h3>
-                    <p class="text-xs text-slate-500">Periode Pembayaran: {{ slipGaji.month }}</p>
-                </div>
-
-                <div class="grid grid-cols-2 gap-4 text-xs bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                    <div>
-                        <span class="text-slate-400 block">Nama Pegawai:</span>
-                        <strong class="text-slate-800 text-sm">{{ slipGaji.name }}</strong>
-                    </div>
-                    <div>
-                        <span class="text-slate-400 block">ID / NIP Staf:</span>
-                        <strong class="text-slate-800 font-mono">{{ slipGaji.nip }}</strong>
-                    </div>
-                    <div>
-                        <span class="text-slate-400 block">Jabatan / Posisi:</span>
-                        <strong class="text-slate-800">{{ slipGaji.jabatan }}</strong>
-                    </div>
-                    <div>
-                        <span class="text-slate-400 block">Tanggal Payroll:</span>
-                        <strong class="text-slate-800">{{ slipGaji.paidDate }}</strong>
-                    </div>
-                </div>
-
-                <div class="grid md:grid-cols-2 gap-6">
-                    <!-- Komponen Penerimaan -->
-                    <div class="space-y-3">
-                        <h4 class="text-xs font-extrabold uppercase tracking-wider text-emerald-700 pb-1 border-b border-emerald-100">
-                            Penerimaan (Penghasilan)
-                        </h4>
-                        <div v-for="(item, idx) in slipGaji.earnings" :key="idx" class="flex justify-between text-xs py-1">
-                            <span class="text-slate-600">{{ item.label }}</span>
-                            <span class="font-bold text-slate-900">{{ formatRupiah(item.amount) }}</span>
-                        </div>
-                    </div>
-
-                    <!-- Komponen Potongan -->
-                    <div class="space-y-3">
-                        <h4 class="text-xs font-extrabold uppercase tracking-wider text-rose-700 pb-1 border-b border-rose-100">
-                            Potongan Resmi
-                        </h4>
-                        <div v-if="slipGaji.deductions.length === 0" class="text-xs text-slate-400 py-1">
-                            Tidak ada potongan pada periode ini.
-                        </div>
-                        <div v-else v-for="(item, idx) in slipGaji.deductions" :key="idx" class="flex justify-between text-xs py-1">
-                            <span class="text-slate-600">{{ item.label }}</span>
-                            <span class="font-bold text-rose-700">- {{ formatRupiah(item.amount) }}</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="pt-4 border-t border-slate-200 flex justify-between items-center bg-slate-50 p-4 rounded-2xl">
-                    <span class="text-sm font-black text-slate-800 uppercase">Gaji Bersih (Take Home Pay)</span>
-                    <span class="text-xl font-black text-indigo-700">{{ formatRupiah(slipGaji.totalSalary) }}</span>
-                </div>
-            </div>
-
-            <!-- Riwayat Payroll Masa Lalu -->
-            <div class="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm overflow-hidden print:hidden">
-                <h3 class="font-extrabold text-slate-800 mb-4">Riwayat Payroll Staf</h3>
-                <div v-if="payrollHistory.length === 0" class="text-xs text-slate-400 text-center py-4">
-                    Belum ada riwayat slip gaji sebelumnya.
-                </div>
-                <div v-else class="divide-y divide-slate-100">
-                    <div v-for="h in payrollHistory" :key="h.id" class="py-3 flex items-center justify-between text-xs">
-                        <div>
-                            <p class="font-bold text-slate-800">{{ h.month }}</p>
-                            <p class="text-slate-400">{{ h.date }}</p>
-                        </div>
-                        <div class="text-right">
-                            <p class="font-black text-slate-900">{{ formatRupiah(h.takeHome) }}</p>
-                            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase" :class="h.status === 'paid' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'">
-                                {{ h.status }}
-                            </span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </StaffLayout>
+    </PortalShell>
 </template>

@@ -248,7 +248,7 @@ class PpdbController extends Controller
                     'nik' => $registration->nik,
                     'tempat_lahir' => $registration->birth_place,
                     'tanggal_lahir' => $registration->birth_date,
-                    'alamat' => $registration->address,
+                    'alamat_jalan' => $registration->address,
                     'no_telp_ortu' => $registration->parent_phone,
                     'nama_ayah' => $registration->parent_name,
                     'pekerjaan_ayah' => $registration->parent_job,

@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\User;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
 {
@@ -12,17 +13,37 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // Panggil RoleSeeder untuk membuat 11 hak akses pengguna
+        // 1. Roles & Permissions (11 roles)
         $this->call(RoleSeeder::class);
 
-        // Buat Super Admin pertama
-        $superAdmin = User::factory()->create([
-            'name' => 'Super Admin',
-            'email' => 'admin@sekolah.com',
+        // 2. Akun Super Admin Utama
+        $superAdmin = User::firstOrCreate([
+            'email' => 'admin@sdmujahidin.sch.id',
+        ], [
+            'name' => 'Super Admin Al Mujahidin',
+            'password' => Hash::make('password'),
+            'email_verified_at' => now(),
         ]);
-        $superAdmin->assignRole('Super Admin');
+        if (! $superAdmin->hasRole('Super Admin')) {
+            $superAdmin->assignRole('Super Admin');
+        }
 
-        // Panggil TeacherDemoSeeder untuk mengisi data demo UI Guru
+        // 3. Akun Pengguna Bawaan Seluruh Role
+        $this->call(UserRoleSeeder::class);
+
+        // 4. Mata Pelajaran Resmi SD Muhammadiyah Al Mujahidin
+        $this->call(SubjectSeeder::class);
+
+        // 5. Data Struktur SD: Tingkat 1-6, Rombel 1A-6B, Guru & Jadwal
         $this->call(TeacherDemoSeeder::class);
+
+        // 6. Data Portal Siswa (Tugas, CBT, Presensi, Nilai, KTS)
+        $this->call(StudentPortalDemoSeeder::class);
+
+        // 7. Data Portal Orang Tua (Multi-anak, Tagihan, Prestasi)
+        $this->call(ParentPortalDemoSeeder::class);
+
+        // 8. Data E-Kantin Digital (Stand, Menu Sehat, Saldo)
+        $this->call(CanteenDemoSeeder::class);
     }
 }

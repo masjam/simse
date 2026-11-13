@@ -1,26 +1,28 @@
 <script setup>
-import CanteenLayout from '@/Layouts/CanteenLayout.vue';
 import { Head, useForm } from '@inertiajs/vue3';
 import { QrcodeStream } from 'vue-qrcode-reader';
 import { ref } from 'vue';
+import PortalShell from '@/Layouts/PortalShell.vue';
+import PageHeader from '@/Components/ui/PageHeader.vue';
+import AppCard from '@/Components/ui/AppCard.vue';
+import AppButton from '@/Components/ui/AppButton.vue';
+import AppInput from '@/Components/ui/AppInput.vue';
+import EmptyState from '@/Components/ui/EmptyState.vue';
+import MoneyText from '@/Components/domain/MoneyText.vue';
+import { useToast } from '@/composables/useToast';
 
 defineProps({
     stand: { type: Object, required: true },
     readyOrders: { type: Array, required: true },
 });
 
+const toast = useToast();
 const cameraActive = ref(false);
 const cameraError = ref('');
 
 const form = useForm({
     qr_code: '',
 });
-
-const formatRupiah = (amount) => new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    minimumFractionDigits: 0,
-}).format(amount || 0);
 
 const submitCode = (code) => {
     if (code) {
@@ -31,6 +33,10 @@ const submitCode = (code) => {
         preserveScroll: true,
         onSuccess: () => {
             form.reset('qr_code');
+            toast.success('Pesanan berhasil divalidasi dan diselesaikan!');
+        },
+        onError: () => {
+            toast.error('Kode QR atau kode pickup tidak valid!');
         },
     });
 };
@@ -51,89 +57,107 @@ const onCameraError = (err) => {
 
 <template>
     <Head title="Scan QR Ambil Pesanan" />
+    <PortalShell variant="sidebar">
+        <div class="space-y-6">
+            <PageHeader
+                title="Validasi Pengambilan Pesanan (QR)"
+                :subtitle="`Pindai QR bukti pemesanan siswa untuk ${stand.name}`"
+            />
 
-    <CanteenLayout>
-        <template #header>
-            <div>
-                <h1 class="text-base sm:text-lg font-extrabold text-slate-800">Validasi Pengambilan Pesanan (QR)</h1>
-                <p class="text-xs text-slate-500">{{ stand.name }}</p>
-            </div>
-        </template>
-
-        <div class="grid lg:grid-cols-2 gap-6">
-            <div class="bg-white rounded-2xl border border-slate-200 p-5 space-y-5 shadow-sm">
-                <div class="flex items-center justify-between">
-                    <h2 class="font-extrabold text-slate-800">Pindai QR Siswa</h2>
-                    <button
-                        type="button"
-                        class="px-3.5 py-2 rounded-xl text-xs font-bold transition"
-                        :class="cameraActive ? 'bg-rose-100 text-rose-700' : 'bg-amber-500 text-slate-950 hover:bg-amber-400'"
-                        @click="cameraActive = !cameraActive"
-                    >
-                        {{ cameraActive ? 'Matikan Kamera' : 'Buka Kamera QR' }}
-                    </button>
-                </div>
-
-                <div v-if="cameraError" class="p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs font-semibold text-amber-800">
-                    {{ cameraError }}
-                </div>
-
-                <div v-if="cameraActive" class="rounded-2xl overflow-hidden border border-slate-200 bg-slate-950 aspect-video">
-                    <QrcodeStream @detect="onDetect" @error="onCameraError" />
-                </div>
-
-                <form class="space-y-3 pt-2 border-t border-slate-100" @submit.prevent="submitCode()">
-                    <label class="block text-xs font-bold text-slate-600">Atau masukkan kode pengambilan manual</label>
-                    <div class="flex gap-2">
-                        <input
-                            v-model="form.qr_code"
-                            type="text"
-                            class="flex-1 rounded-xl border-slate-300 text-sm font-mono uppercase"
-                            placeholder="Contoh: KNT-ABCD123456"
-                            required
-                        />
-                        <button
-                            type="submit"
-                            :disabled="form.processing"
-                            class="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold transition"
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Scanner Section -->
+                <AppCard>
+                    <div class="flex items-center justify-between pb-3 border-b border-line mb-4">
+                        <h3 class="font-bold text-ink text-sm">Pindai QR Siswa</h3>
+                        <AppButton
+                            :variant="cameraActive ? 'danger' : 'primary'"
+                            size="sm"
+                            @click="cameraActive = !cameraActive"
                         >
-                            Validasi
-                        </button>
+                            {{ cameraActive ? 'Matikan Kamera' : '📷 Buka Kamera QR' }}
+                        </AppButton>
                     </div>
-                    <p v-if="form.errors.qr_code" class="text-xs text-rose-600">{{ form.errors.qr_code }}</p>
-                </form>
-            </div>
 
-            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                <div class="px-5 py-4 border-b border-slate-100">
-                    <h2 class="font-extrabold text-slate-800">Pesanan Menunggu Diambil</h2>
-                </div>
+                    <div v-if="cameraError" class="p-3 mb-4 rounded-control bg-status-warning-bg text-status-warning-fg border border-status-warning-line text-xs font-semibold">
+                        {{ cameraError }}
+                    </div>
 
-                <div v-if="readyOrders.length === 0" class="p-8 text-center text-sm text-slate-500">
-                    Tidak ada pesanan aktif yang menunggu pengambilan.
-                </div>
+                    <div v-if="cameraActive" class="rounded-card overflow-hidden border border-line bg-ink aspect-video mb-4">
+                        <QrcodeStream @detect="onDetect" @error="onCameraError" />
+                    </div>
 
-                <div v-else class="divide-y divide-slate-100">
-                    <div v-for="order in readyOrders" :key="order.id" class="p-4 flex items-center justify-between gap-3">
-                        <div>
-                            <p class="font-mono text-xs font-bold text-amber-700">{{ order.qr_code_pickup }}</p>
-                            <p class="text-sm font-bold text-slate-800">{{ order.student_name }}</p>
-                            <p class="text-xs text-slate-500">{{ order.items_summary }}</p>
-                        </div>
-                        <div class="text-right shrink-0">
-                            <p class="text-sm font-black text-slate-900">{{ formatRupiah(order.total_price) }}</p>
-                            <button
-                                type="button"
-                                class="mt-1 px-3 py-1 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 text-xs font-bold"
-                                @click="submitCode(order.qr_code_pickup)"
+                    <form class="space-y-3 pt-2" @submit.prevent="submitCode()">
+                        <label class="block text-xs font-bold text-ink-muted">
+                            Atau masukkan kode pengambilan manual:
+                        </label>
+                        <div class="flex gap-2">
+                            <div class="flex-1">
+                                <AppInput
+                                    v-model="form.qr_code"
+                                    placeholder="Contoh: KNT-ABCD123456"
+                                    class="font-mono uppercase text-sm"
+                                    required
+                                />
+                            </div>
+                            <AppButton
+                                type="submit"
+                                variant="primary"
+                                :loading="form.processing"
                             >
-                                Selesaikan
-                            </button>
+                                Validasi
+                            </AppButton>
+                        </div>
+                        <p v-if="form.errors.qr_code" class="text-xs text-status-danger-fg">
+                            {{ form.errors.qr_code }}
+                        </p>
+                    </form>
+                </AppCard>
+
+                <!-- Orders Ready for Pickup -->
+                <AppCard>
+                    <div class="pb-3 border-b border-line mb-4">
+                        <h3 class="font-bold text-ink text-sm">
+                            Pesanan Menunggu Diambil ({{ readyOrders.length }})
+                        </h3>
+                    </div>
+
+                    <div v-if="readyOrders.length === 0">
+                        <EmptyState
+                            title="Tidak Ada Antrean"
+                            description="Saat ini tidak ada pesanan aktif yang menunggu pengambilan."
+                        />
+                    </div>
+
+                    <div v-else class="divide-y divide-line">
+                        <div
+                            v-for="order in readyOrders"
+                            :key="order.id"
+                            class="py-3 flex items-center justify-between gap-3"
+                        >
+                            <div class="space-y-0.5">
+                                <p class="font-mono text-xs font-bold text-brand-700">
+                                    {{ order.qr_code_pickup }}
+                                </p>
+                                <p class="text-xs font-bold text-ink">{{ order.student_name }}</p>
+                                <p class="text-[11px] text-ink-muted">{{ order.items_summary }}</p>
+                            </div>
+
+                            <div class="text-right shrink-0 space-y-1">
+                                <p class="text-xs font-black text-ink font-numeric">
+                                    <MoneyText :amount="order.total_price" />
+                                </p>
+                                <AppButton
+                                    variant="outline"
+                                    size="sm"
+                                    @click="submitCode(order.qr_code_pickup)"
+                                >
+                                    Selesaikan
+                                </AppButton>
+                            </div>
                         </div>
                     </div>
-                </div>
+                </AppCard>
             </div>
         </div>
-    </CanteenLayout>
+    </PortalShell>
 </template>
-

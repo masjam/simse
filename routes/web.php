@@ -10,9 +10,8 @@ use App\Http\Controllers\Admin\TingkatController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\BendaharaController;
 use App\Http\Controllers\CanteenController;
-use App\Http\Controllers\CBTController;
 use App\Http\Controllers\CmsController;
-use App\Http\Controllers\KantinController;
+use App\Http\Controllers\Dev\DesignSystemController;
 use App\Http\Controllers\KioskDeviceController;
 use App\Http\Controllers\KioskPresensiController;
 use App\Http\Controllers\NotificationController;
@@ -26,6 +25,7 @@ use App\Http\Controllers\SystemSettingController;
 use App\Http\Controllers\TeacherController;
 use App\Models\Post;
 use App\Services\InstagramService;
+use App\Support\RoleHome;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
@@ -309,37 +309,23 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // 3. Modul LMS & CBT
     Route::prefix('learning')->name('learning.')->group(function () {
-        Route::get('/lms', function () {
-            return Inertia::render('Placeholder', ['title' => 'Learning Management System']);
-        })->middleware('module:lms')->name('lms');
-        Route::get('/cbt', [CBTController::class, 'index'])->middleware('module:cbt')->name('cbt');
-        Route::get('/perpustakaan', function () {
-            return Inertia::render('Placeholder', ['title' => 'Perpustakaan Digital']);
-        })->middleware('module:perpustakaan')->name('perpustakaan');
+        Route::get('/lms', fn () => RoleHome::for(request()->user(), 'lms'))->middleware('module:lms')->name('lms');
+        Route::get('/cbt', fn () => RoleHome::for(request()->user(), 'cbt'))->middleware('module:cbt')->name('cbt');
+        Route::get('/perpustakaan', fn () => RoleHome::for(request()->user(), 'perpustakaan'))->middleware('module:perpustakaan')->name('perpustakaan');
     });
 
     // 4. Modul Keuangan & e-Kantin
     Route::prefix('finansial')->name('finansial.')->group(function () {
-        Route::get('/spp', function () {
-            return Inertia::render('Placeholder', ['title' => 'Tagihan SPP']);
-        })->middleware('module:keuangan')->name('spp');
-        Route::get('/dompet', function () {
-            return Inertia::render('Placeholder', ['title' => 'Dompet Digital']);
-        })->middleware('module:keuangan')->name('dompet');
-        Route::get('/kantin', [KantinController::class, 'index'])->middleware('module:kantin')->name('kantin');
-        Route::get('/payroll', function () {
-            return Inertia::render('Placeholder', ['title' => 'Payroll & Penggajian']);
-        })->middleware('module:payroll')->name('payroll');
+        Route::get('/spp', fn () => RoleHome::for(request()->user(), 'spp'))->middleware('module:keuangan')->name('spp');
+        Route::get('/dompet', fn () => RoleHome::for(request()->user(), 'dompet'))->middleware('module:keuangan')->name('dompet');
+        Route::get('/kantin', fn () => RoleHome::for(request()->user(), 'kantin'))->middleware('module:kantin')->name('kantin');
+        Route::get('/payroll', fn () => RoleHome::for(request()->user(), 'payroll'))->middleware('module:payroll')->name('payroll');
     });
 
     // 5. Modul BK & PPDB
     Route::prefix('layanan')->name('layanan.')->group(function () {
-        Route::get('/bk', function () {
-            return Inertia::render('Placeholder', ['title' => 'Bimbingan Konseling']);
-        })->middleware('module:bk')->name('bk');
-        Route::get('/ppdb', function () {
-            return Inertia::render('Placeholder', ['title' => 'Penerimaan Siswa Baru']);
-        })->middleware('module:ppdb')->name('ppdb');
+        Route::get('/bk', fn () => RoleHome::for(request()->user(), 'bk'))->middleware('module:bk')->name('bk');
+        Route::get('/ppdb', fn () => RoleHome::for(request()->user(), 'ppdb'))->middleware('module:ppdb')->name('ppdb');
     });
 
     // Notifikasi In-App
@@ -379,5 +365,8 @@ Route::middleware(['kiosk.mac', 'module:absensi'])->prefix('kiosk-presensi')->na
     Route::get('/', [KioskPresensiController::class, 'index'])->name('presensi');
     Route::post('/tap', [KioskPresensiController::class, 'tap'])->name('presensi.tap');
 });
+
+// Living Style Guide & Design System (Hanya lokal/testing, 404 di produksi)
+Route::get('/dev/design-system', DesignSystemController::class)->name('dev.design-system');
 
 require __DIR__.'/auth.php';
