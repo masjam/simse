@@ -12,7 +12,7 @@ return new class extends Migration
             $table->uuid('id')->primary();
             $table->string('name'); // e.g. SPP Bulanan, Uang Gedung
             $table->decimal('amount', 12, 2);
-            $table->enum('period', ['Bulanan', 'Tahunan', 'Sekali Bayar']);
+            $table->enum('period', ['Bulanan', 'Semester', 'Tahunan', 'Sekali Bayar']);
             $table->timestamps();
         });
     }

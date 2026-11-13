@@ -289,4 +289,3 @@ class PpdbController extends Controller
         return redirect()->back()->with('success', "Status pendaftaran {$registration->student_name} diubah menjadi {$validated['status']}.");
     }
 }
-

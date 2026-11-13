@@ -413,6 +413,7 @@ class BendaharaController extends Controller
                     'id' => $bill->id,
                     'bill_type_id' => $bill->bill_type_id,
                     'bill_name' => $bill->billType?->name ?? '-',
+                    'period' => $bill->billType?->period ?? '-',
                     'student_id' => $bill->student_id,
                     'student_name' => $bill->student?->user?->name ?? 'Siswa',
                     'nisn' => $bill->student?->nisn ?? '-',
@@ -485,7 +486,7 @@ class BendaharaController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'amount' => ['required', 'numeric', 'min:0'],
-            'period' => ['required', 'string', 'in:Bulanan,Tahunan,Sekali Bayar'],
+            'period' => ['required', 'string', 'in:Bulanan,Semester,Tahunan,Sekali Bayar'],
         ]);
 
         BillType::create($validated);
@@ -498,7 +499,7 @@ class BendaharaController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'amount' => ['required', 'numeric', 'min:0'],
-            'period' => ['required', 'string', 'in:Bulanan,Tahunan,Sekali Bayar'],
+            'period' => ['required', 'string', 'in:Bulanan,Semester,Tahunan,Sekali Bayar'],
         ]);
 
         $billType->update($validated);

@@ -1,7 +1,7 @@
 <script setup>
 import BendaharaLayout from '@/Layouts/BendaharaLayout.vue';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 
 const props = defineProps({
     billTypes: { type: Array, default: () => [] },
@@ -13,7 +13,13 @@ const props = defineProps({
 const page = usePage();
 const activeTab = ref('tagihan');
 const billStatusFilter = ref('Semua');
+const billPeriodFilter = ref('Semua');
 const billSearch = ref('');
+
+const monthsList = [
+    'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
+];
 
 const showBillTypeModal = ref(false);
 const editingBillType = ref(null);
@@ -33,16 +39,38 @@ const generateForm = useForm({
     amount_due: '',
 });
 
+const selectedBillType = computed(() => {
+    return props.billTypes.find((bt) => bt.id === generateForm.bill_type_id) || null;
+});
+
+const updateMonthByPeriod = (billTypeId) => {
+    const selected = props.billTypes.find((bt) => bt.id === billTypeId);
+    if (selected?.period === 'Semester') {
+        generateForm.month = 'Semester Ganjil';
+    } else if (selected?.period === 'Bulanan') {
+        const curMonthIdx = new Date().getMonth();
+        generateForm.month = monthsList[curMonthIdx] || 'Januari';
+    } else {
+        generateForm.month = '';
+    }
+};
+
+watch(() => generateForm.bill_type_id, (newId) => {
+    updateMonthByPeriod(newId);
+});
+
 const filteredBills = computed(() => {
     const q = billSearch.value.trim().toLowerCase();
     return props.bills.filter((b) => {
         const matchStatus = billStatusFilter.value === 'Semua' || b.status === billStatusFilter.value;
+        const matchPeriod = billPeriodFilter.value === 'Semua' || b.period === billPeriodFilter.value;
         const matchQuery = !q ||
             b.student_name.toLowerCase().includes(q) ||
             b.nisn.toLowerCase().includes(q) ||
             b.bill_name.toLowerCase().includes(q) ||
-            b.class.toLowerCase().includes(q);
-        return matchStatus && matchQuery;
+            b.class.toLowerCase().includes(q) ||
+            (b.month && b.month.toLowerCase().includes(q));
+        return matchStatus && matchPeriod && matchQuery;
     });
 });
 
@@ -91,6 +119,7 @@ const deleteBillType = (id) => {
 const openGenerateModal = (billTypeId = null) => {
     generateForm.bill_type_id = billTypeId || props.billTypes[0]?.id || '';
     generateForm.amount_due = '';
+    updateMonthByPeriod(generateForm.bill_type_id);
     generateForm.clearErrors();
     showGenerateModal.value = true;
 };
@@ -185,7 +214,15 @@ const formatCurrency = (val) => 'Rp ' + Number(val || 0).toLocaleString('id-ID')
                                 <td class="py-4 px-6 font-bold text-slate-800">{{ item.name }}</td>
                                 <td class="py-4 px-6 text-slate-700 font-bold">{{ formatCurrency(item.amount) }}</td>
                                 <td class="py-4 px-6">
-                                    <span class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700">{{ item.period }}</span>
+                                    <span class="px-3 py-1 rounded-full text-xs font-bold"
+                                          :class="{
+                                              'bg-emerald-100 text-emerald-700': item.period === 'Bulanan',
+                                              'bg-sky-100 text-sky-700': item.period === 'Semester',
+                                              'bg-purple-100 text-purple-700': item.period === 'Tahunan',
+                                              'bg-amber-100 text-amber-700': item.period === 'Sekali Bayar',
+                                          }">
+                                        {{ item.period }}
+                                    </span>
                                 </td>
                                 <td class="py-4 px-6 text-slate-600 font-semibold">{{ item.bills_count }} Siswa</td>
                                 <td class="py-4 px-6 text-right">
@@ -222,6 +259,13 @@ const formatCurrency = (val) => 'Rp ' + Number(val || 0).toLocaleString('id-ID')
                             <option value="Angsuran">Angsuran</option>
                             <option value="Lunas">Lunas</option>
                         </select>
+                        <select v-model="billPeriodFilter" class="px-4 py-2 text-sm border border-slate-200 rounded-xl bg-white font-semibold">
+                            <option value="Semua">Semua Periode</option>
+                            <option value="Bulanan">Bulanan</option>
+                            <option value="Semester">Semester</option>
+                            <option value="Tahunan">Tahunan</option>
+                            <option value="Sekali Bayar">Sekali Bayar</option>
+                        </select>
                     </div>
                     <button @click="openGenerateModal()" :disabled="billTypes.length === 0"
                             class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold rounded-xl text-sm">
@@ -248,7 +292,20 @@ const formatCurrency = (val) => 'Rp ' + Number(val || 0).toLocaleString('id-ID')
                                     <p class="text-xs text-slate-500">{{ b.class }} • {{ b.nisn }}</p>
                                 </td>
                                 <td class="py-4 px-6 font-semibold text-slate-700">{{ b.bill_name }}</td>
-                                <td class="py-4 px-6 text-slate-600">{{ [b.month, b.year].filter(Boolean).join(' ') || '-' }}</td>
+                                <td class="py-4 px-6 text-slate-600">
+                                    <div class="flex items-center gap-1.5 flex-wrap">
+                                        <span class="px-2 py-0.5 rounded text-[11px] font-bold"
+                                              :class="{
+                                                  'bg-emerald-50 text-emerald-700 border border-emerald-200': b.period === 'Bulanan',
+                                                  'bg-sky-50 text-sky-700 border border-sky-200': b.period === 'Semester',
+                                                  'bg-purple-50 text-purple-700 border border-purple-200': b.period === 'Tahunan',
+                                                  'bg-amber-50 text-amber-700 border border-amber-200': b.period === 'Sekali Bayar',
+                                              }">
+                                            {{ b.period }}
+                                        </span>
+                                        <span>{{ [b.month, b.year].filter(Boolean).join(' ') || '-' }}</span>
+                                    </div>
+                                </td>
                                 <td class="py-4 px-6 text-right font-semibold">{{ formatCurrency(b.amount_due) }}</td>
                                 <td class="py-4 px-6 text-right font-black text-slate-800">{{ formatCurrency(b.remaining) }}</td>
                                 <td class="py-4 px-6">
@@ -353,6 +410,7 @@ const formatCurrency = (val) => 'Rp ' + Number(val || 0).toLocaleString('id-ID')
                                 <label class="block text-xs font-bold text-slate-700 mb-1">Periode</label>
                                 <select v-model="billTypeForm.period" class="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl">
                                     <option value="Bulanan">Bulanan</option>
+                                    <option value="Semester">Semester</option>
                                     <option value="Tahunan">Tahunan</option>
                                     <option value="Sekali Bayar">Sekali Bayar</option>
                                 </select>
@@ -389,9 +447,24 @@ const formatCurrency = (val) => 'Rp ' + Number(val || 0).toLocaleString('id-ID')
                                 </select>
                             </div>
                             <div class="grid grid-cols-2 gap-3">
-                                <div>
-                                    <label class="block text-xs font-bold text-slate-700 mb-1">Bulan (Opsional)</label>
-                                    <input v-model="generateForm.month" type="text" placeholder="November" class="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl" />
+                                <div v-if="selectedBillType?.period === 'Semester'">
+                                    <label class="block text-xs font-bold text-slate-700 mb-1">Pilih Semester</label>
+                                    <select v-model="generateForm.month" class="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl font-medium">
+                                        <option value="Semester Ganjil">Semester Ganjil</option>
+                                        <option value="Semester Genap">Semester Genap</option>
+                                        <option value="Semester 1">Semester 1</option>
+                                        <option value="Semester 2">Semester 2</option>
+                                    </select>
+                                </div>
+                                <div v-else-if="selectedBillType?.period === 'Bulanan'">
+                                    <label class="block text-xs font-bold text-slate-700 mb-1">Pilih Bulan</label>
+                                    <select v-model="generateForm.month" class="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl font-medium">
+                                        <option v-for="m in monthsList" :key="m" :value="m">{{ m }}</option>
+                                    </select>
+                                </div>
+                                <div v-else>
+                                    <label class="block text-xs font-bold text-slate-700 mb-1">Keterangan Sub-Periode</label>
+                                    <input v-model="generateForm.month" type="text" placeholder="Contoh: Tahap 1 / T.A. 2026/2027" class="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl" />
                                 </div>
                                 <div>
                                     <label class="block text-xs font-bold text-slate-700 mb-1">Tahun</label>

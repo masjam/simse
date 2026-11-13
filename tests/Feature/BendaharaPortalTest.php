@@ -156,6 +156,48 @@ class BendaharaPortalTest extends TestCase
         ]);
     }
 
+    public function test_bendahara_can_create_semester_bill_type_and_generate_semester_bills(): void
+    {
+        $this->actingAs($this->bendaharaUser);
+
+        // 1. Create bill type with period Semester
+        $this->post(route('bendahara.spp.bill-types.store'), [
+            'name' => 'Biaya Kegiatan & Ekstrakurikuler Semester',
+            'amount' => 750000,
+            'period' => 'Semester',
+        ])->assertSessionHas('success');
+
+        $billType = BillType::where('name', 'Biaya Kegiatan & Ekstrakurikuler Semester')->firstOrFail();
+        $this->assertSame('Semester', $billType->period);
+
+        // 2. Update bill type
+        $this->put(route('bendahara.spp.bill-types.update', $billType), [
+            'name' => 'Biaya Ujian & Kegiatan Semester',
+            'amount' => 800000,
+            'period' => 'Semester',
+        ])->assertSessionHas('success');
+
+        $this->assertSame('Semester', $billType->fresh()->period);
+        $this->assertEquals(800000, $billType->fresh()->amount);
+
+        // 3. Generate semester bill
+        $this->post(route('bendahara.spp.generate'), [
+            'bill_type_id' => $billType->id,
+            'student_class_id' => $this->class->id,
+            'month' => 'Semester Ganjil',
+            'year' => '2026/2027',
+        ])->assertSessionHas('success');
+
+        $this->assertDatabaseHas('bills', [
+            'bill_type_id' => $billType->id,
+            'student_id' => $this->student->id,
+            'month' => 'Semester Ganjil',
+            'year' => '2026/2027',
+            'amount_due' => 800000,
+            'status' => 'Belum Lunas',
+        ]);
+    }
+
     public function test_bendahara_can_process_partial_payment_verify_transfer_and_store_receipt_privately(): void
     {
         Storage::fake('private');
