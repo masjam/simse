@@ -20,7 +20,7 @@ const props = defineProps({
     subjects: { type: Array, default: () => [] },
 });
 
-const confirm = useConfirm();
+const { confirm } = useConfirm();
 const toast = useToast();
 
 const isModalOpen = ref(false);

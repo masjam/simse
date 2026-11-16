@@ -19,7 +19,7 @@ const props = defineProps({
 });
 
 const toast = useToast();
-const confirm = useConfirm();
+const { confirm } = useConfirm();
 
 const liveData = ref(props.monitorData);
 const searchQuery = ref('');

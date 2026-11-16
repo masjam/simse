@@ -20,7 +20,7 @@ const props = defineProps({
     lessons: { type: Array, default: () => [] },
 });
 
-const confirm = useConfirm();
+const { confirm } = useConfirm();
 const toast = useToast();
 
 const classes = computed(() => props.classes?.length ? props.classes : ['1 Brilliant', 'I OLYMPIAD']);

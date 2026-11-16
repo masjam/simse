@@ -20,7 +20,7 @@ const props = defineProps({
 });
 
 const toast = useToast();
-const confirm = useConfirm();
+const { confirm } = useConfirm();
 
 const activeTab = ref('all'); // 'all' | 'remedial'
 const showCreateExam = ref(false);

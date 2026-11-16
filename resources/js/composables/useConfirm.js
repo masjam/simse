@@ -47,11 +47,17 @@ export function useConfirm() {
         state.value.isOpen = false;
     }
 
-    return {
+    const result = {
         confirmState: state,
         confirm,
         handleConfirm,
         handleCancel,
     };
+
+    // Support both `const { confirm } = useConfirm()` and `const confirm = useConfirm()`
+    const callable = (...args) => confirm(...args);
+    Object.assign(callable, result);
+
+    return callable;
 }
 

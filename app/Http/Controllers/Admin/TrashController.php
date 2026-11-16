@@ -12,6 +12,7 @@ use App\Models\Lesson;
 use App\Models\Post;
 use App\Models\Question;
 use App\Models\Student;
+use App\Models\Subject;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -29,6 +30,7 @@ class TrashController extends Controller
         'bill' => Bill::class,
         'post' => Post::class,
         'bill_type' => BillType::class,
+        'subject' => Subject::class,
     ];
 
     /**
@@ -50,6 +52,7 @@ class TrashController extends Controller
             ->through(function ($item) use ($currentType) {
                 $name = match ($currentType) {
                     'student' => $item->user?->name ?? "Siswa #{$item->id}",
+                    'subject' => "[{$item->code}] {$item->name}",
                     'lesson', 'assignment', 'exam', 'book', 'post', 'bill_type' => $item->title ?? $item->name ?? "Item #{$item->id}",
                     'question' => strip_tags(substr($item->content ?? '', 0, 50)) ?: "Soal #{$item->id}",
                     'bill' => ($item->billType?->name ?? 'Tagihan').' - Rp '.number_format($item->amount_due ?? 0, 0, ',', '.'),

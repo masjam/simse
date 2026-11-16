@@ -15,7 +15,7 @@ const props = defineProps({
     subjects: { type: Object, required: true },
 });
 
-const confirm = useConfirm();
+const { confirm } = useConfirm();
 const toast = useToast();
 
 const isModalOpen = ref(false);
@@ -68,15 +68,15 @@ const submitForm = () => {
 const deleteSubject = async (id) => {
     const ok = await confirm({
         title: 'Hapus Mata Pelajaran',
-        message: 'Apakah Anda yakin ingin menghapus data mata pelajaran ini?',
-        confirmText: 'Hapus Mapel',
+        message: 'Apakah Anda yakin ingin menghapus data mata pelajaran ini? Data yang dihapus akan dipindahkan ke Tempat Sampah dan dapat dipulihkan kapan saja.',
+        confirmText: 'Ya, Hapus Mapel',
         variant: 'danger',
     });
 
     if (ok) {
         form.delete(route('admin.subjects.destroy', id), {
             preserveScroll: true,
-            onSuccess: () => toast.success('Mata pelajaran berhasil dihapus.'),
+            onSuccess: () => toast.success('Mata pelajaran berhasil dipindahkan ke tempat sampah.'),
         });
     }
 };

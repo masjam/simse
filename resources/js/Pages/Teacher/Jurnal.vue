@@ -18,7 +18,7 @@ const props = defineProps({
     filters: { type: Object, default: () => ({ class_id: '', subject_id: '', week: '' }) },
 });
 
-const confirm = useConfirm();
+const { confirm } = useConfirm();
 const toast = useToast();
 
 const filterClass = ref(props.filters.class_id || '');

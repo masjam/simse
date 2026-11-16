@@ -10,8 +10,23 @@ import EmptyState from '@/Components/ui/EmptyState.vue';
 import MoneyText from '@/Components/domain/MoneyText.vue';
 
 defineProps({
-    stats: { type: Object, required: true },
-    recentAttendances: { type: Array, required: true },
+    stats: {
+        type: Object,
+        default: () => ({
+            today_status: 'Belum Presensi',
+            time_in: '-',
+            time_out: '-',
+            present_days: 0,
+            total_books: 0,
+            active_loans: 0,
+            overdue_loans: 0,
+            latest_salary: 0,
+        }),
+    },
+    recentAttendances: {
+        type: Array,
+        default: () => [],
+    },
 });
 </script>
 

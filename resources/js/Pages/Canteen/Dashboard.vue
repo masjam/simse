@@ -16,9 +16,9 @@ import { useConfirm } from '@/composables/useConfirm';
 import { useToast } from '@/composables/useToast';
 
 const props = defineProps({
-    stand: { type: Object, required: true },
-    stats: { type: Object, required: true },
-    orders: { type: Array, required: true },
+    stand: { type: Object, default: () => ({ name: '', description: '', is_open: false, balance: 0 }) },
+    stats: { type: Object, default: () => ({ today_revenue: 0, pending_orders: 0, menu_count: 0 }) },
+    orders: { type: Array, default: () => [] },
 });
 
 const { confirm } = useConfirm();
@@ -26,12 +26,12 @@ const toast = useToast();
 
 const editStandModal = ref(false);
 const standForm = useForm({
-    name: props.stand.name,
-    description: props.stand.description || '',
+    name: props.stand?.name ?? '',
+    description: props.stand?.description || '',
 });
 
 const toggleOpen = async () => {
-    const nextState = !props.stand.is_open;
+    const nextState = !props.stand?.is_open;
     const ok = await confirm({
         title: nextState ? 'Buka Stan Kantin' : 'Tutup Stan Sementara',
         message: nextState
@@ -134,7 +134,7 @@ const mapOrderStatusVariant = (status) => {
             <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 <StatCard
                     title="Saldo Stand"
-                    :value="stand.balance"
+                    :value="stand?.balance ?? 0"
                     subtitle="Dapat Dicairkan"
                     icon-bg="success"
                 >
@@ -142,7 +142,7 @@ const mapOrderStatusVariant = (status) => {
                 </StatCard>
                 <StatCard
                     title="Omzet Hari Ini"
-                    :value="stats.today_revenue"
+                    :value="stats?.today_revenue ?? 0"
                     subtitle="Penjualan Berjalan"
                     icon-bg="brand"
                 >
@@ -150,7 +150,7 @@ const mapOrderStatusVariant = (status) => {
                 </StatCard>
                 <StatCard
                     title="Pesanan Aktif"
-                    :value="stats.pending_orders"
+                    :value="stats?.pending_orders ?? 0"
                     subtitle="Perlu Diproses"
                     icon-bg="warning"
                 >
@@ -158,7 +158,7 @@ const mapOrderStatusVariant = (status) => {
                 </StatCard>
                 <StatCard
                     title="Total Menu"
-                    :value="`${stats.menu_count} Item`"
+                    :value="`${stats?.menu_count ?? 0} Item`"
                     subtitle="Katalog Makanan/Minuman"
                     icon-bg="accent"
                 >

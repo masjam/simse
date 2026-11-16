@@ -20,7 +20,7 @@ const props = defineProps({
     current_class_id: { type: [String, Number], default: '' },
 });
 
-const confirm = useConfirm();
+const { confirm } = useConfirm();
 const toast = useToast();
 
 const isModalOpen = ref(false);

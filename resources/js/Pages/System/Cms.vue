@@ -37,7 +37,7 @@ const props = defineProps({
     },
 });
 
-const confirm = useConfirm();
+const { confirm } = useConfirm();
 const toast = useToast();
 
 const search = ref(props.filters.search || '');

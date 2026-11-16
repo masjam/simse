@@ -13,25 +13,28 @@ const userRoles = computed(() => user.value.roles || []);
 
 const quickLinks = computed(() => {
     const links = [];
-    if (userRoles.value.includes('Super Admin')) {
+    const hasRole = (role) => userRoles.value.includes(role);
+    const isSuper = hasRole('Super Admin');
+
+    if (isSuper || hasRole('Admin Tata Usaha') || hasRole('Operator')) {
         links.push({ title: 'Portal Administrator', route: 'admin.dashboard', desc: 'Kelola data master dan sistem' });
     }
-    if (userRoles.value.includes('Guru Pengajar') || userRoles.value.includes('Super Admin')) {
+    if (isSuper || hasRole('Guru Pengajar') || hasRole('Guru BK')) {
         links.push({ title: 'Portal Guru', route: 'guru.dashboard', desc: 'Jadwal, presensi kelas, dan nilai siswa' });
     }
-    if (userRoles.value.includes('Wali Santri / Orang Tua') || userRoles.value.includes('Super Admin')) {
+    if (isSuper || hasRole('Orang Tua') || hasRole('Wali Santri / Orang Tua')) {
         links.push({ title: 'Portal Orang Tua', route: 'ortu.dashboard', desc: 'Pantau perkembangan ananda dan SPP' });
     }
-    if (userRoles.value.includes('Siswa') || userRoles.value.includes('Super Admin')) {
+    if (isSuper || hasRole('Siswa')) {
         links.push({ title: 'Portal Siswa', route: 'siswa.dashboard', desc: 'CBT ujian, materi kelas, dan KTS digital' });
     }
-    if (userRoles.value.includes('Bendahara') || userRoles.value.includes('Super Admin')) {
+    if (isSuper || hasRole('Bendahara')) {
         links.push({ title: 'Portal Bendahara', route: 'bendahara.dashboard', desc: 'Kasir SPP, payroll, dan laporan kantin' });
     }
-    if (userRoles.value.includes('Pengelola Kantin') || userRoles.value.includes('Super Admin')) {
+    if (isSuper || hasRole('Pengelola Stand Kantin') || hasRole('Pengelola Kantin')) {
         links.push({ title: 'Portal Kantin', route: 'kantin.dashboard', desc: 'Menu e-kantin dan transaksi POS RFID' });
     }
-    if (userRoles.value.includes('Staf Karyawan') || userRoles.value.includes('Super Admin')) {
+    if (isSuper || hasRole('Staf Sekolah') || hasRole('Staf Karyawan')) {
         links.push({ title: 'Portal Staf', route: 'staf.dashboard', desc: 'Presensi harian staf dan slip gaji' });
     }
     return links;

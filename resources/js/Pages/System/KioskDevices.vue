@@ -15,7 +15,7 @@ defineProps({
     devices: { type: Array, required: true },
 });
 
-const confirm = useConfirm();
+const { confirm } = useConfirm();
 const toast = useToast();
 
 const form = useForm({

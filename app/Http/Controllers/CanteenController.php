@@ -68,12 +68,13 @@ class CanteenController extends Controller
                 ]),
             ]);
 
-        $summary = [
+        $stats = [
             'today_revenue' => (float) (clone $todayOrdersQuery)->sum('total_price'),
             'today_orders_count' => (clone $todayOrdersQuery)->count(),
-            'pending_orders_count' => CanteenOrder::where('canteen_stand_id', $stand->id)
+            'pending_orders' => CanteenOrder::where('canteen_stand_id', $stand->id)
                 ->whereIn('status', ['Menunggu Konfirmasi', 'Sedang Dimasak'])
                 ->count(),
+            'menu_count' => CanteenMenu::where('canteen_stand_id', $stand->id)->count(),
             'total_balance' => (float) $stand->balance,
         ];
 
@@ -85,7 +86,8 @@ class CanteenController extends Controller
                 'is_open' => $stand->is_open,
                 'balance' => (float) $stand->balance,
             ],
-            'summary' => $summary,
+            'stats' => $stats,
+            'summary' => $stats,
             'orders' => $orders,
         ]);
     }

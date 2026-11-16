@@ -144,7 +144,14 @@ export const navigationConfig = {
  * Filter navigation items based on active modules and route existence.
  */
 export function getNavigationForRole(roleName, activeModules = {}) {
-    const groups = navigationConfig[roleName] || [];
+    let targetRole = roleName;
+    if (roleName === 'Guru BK') targetRole = 'Guru Pengajar';
+    if (roleName === 'Admin Tata Usaha' || roleName === 'Operator') targetRole = 'Super Admin';
+    if (roleName === 'Pengelola Kantin') targetRole = 'Pengelola Stand Kantin';
+    if (roleName === 'Staf Karyawan') targetRole = 'Staf Sekolah';
+    if (roleName === 'Wali Santri / Orang Tua') targetRole = 'Orang Tua';
+
+    const groups = navigationConfig[targetRole] || [];
     return groups
         .map((grp) => {
             const filteredItems = grp.items.filter((item) => {

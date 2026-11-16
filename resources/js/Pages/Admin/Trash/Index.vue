@@ -28,6 +28,7 @@ const toast = useToast();
 
 const tabs = [
     { key: 'student', label: 'Peserta Didik' },
+    { key: 'subject', label: 'Mata Pelajaran' },
     { key: 'lesson', label: 'Materi KBM' },
     { key: 'assignment', label: 'Tugas' },
     { key: 'exam', label: 'Ujian CBT' },

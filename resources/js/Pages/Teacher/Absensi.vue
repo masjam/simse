@@ -20,7 +20,7 @@ const props = defineProps({
     students: { type: Array, default: () => [] },
 });
 
-const confirm = useConfirm();
+const { confirm } = useConfirm();
 const toast = useToast();
 
 const classList = computed(() => props.classes?.length ? props.classes : ['1 Brilliant', 'I OLYMPIAD']);

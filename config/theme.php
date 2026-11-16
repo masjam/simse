@@ -51,7 +51,9 @@ return [
         'bendahara.kasir' => 'ledger-tegas',
         'bendahara.payroll' => 'ledger-tegas',
         'kantin.dashboard' => 'pasar-kantin',
+        'kantin.scan' => 'pasar-kantin',
         'kantin.scan-qr' => 'pasar-kantin',
+        'kantin.rfid' => 'pasar-kantin',
         'kantin.rfid-pos' => 'pasar-kantin',
     ],
 
