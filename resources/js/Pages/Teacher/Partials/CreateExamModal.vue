@@ -7,15 +7,22 @@ import AppInput from '@/Components/ui/AppInput.vue';
 import AppSelect from '@/Components/ui/AppSelect.vue';
 import AppTextarea from '@/Components/ui/AppTextarea.vue';
 import AppButton from '@/Components/ui/AppButton.vue';
+import AppCheckbox from '@/Components/ui/AppCheckbox.vue';
 
 const props = defineProps({
     show: { type: Boolean, default: false },
     subjects: { type: Array, default: () => [] },
+    students: { type: Array, default: () => [] },
 });
 
 const emit = defineEmits(['close', 'created']);
 
 const subjectOptions = computed(() => props.subjects.map(s => ({ value: s, label: s })));
+
+const scoringRuleOptions = [
+    { value: 'standard', label: 'Standar (Semua kunci benar = nilai penuh, salah = 0)' },
+    { value: 'partial', label: 'Proporsional Parsial (Skor proporsional, salah mengurangi)' },
+];
 
 const form = useForm({
     title: '',
@@ -24,8 +31,22 @@ const form = useForm({
     end_time: new Date(Date.now() + 26 * 60 * 60 * 1000).toISOString().slice(0, 16),
     duration_minutes: 60,
     max_violations: 3,
+    scoring_rule: 'standard',
+    randomize_questions: true,
+    randomize_options: true,
+    is_remedial: false,
+    remedial_student_ids: [],
     description: '',
 });
+
+const toggleRemedialStudent = (studentId) => {
+    const idx = form.remedial_student_ids.indexOf(studentId);
+    if (idx > -1) {
+        form.remedial_student_ids.splice(idx, 1);
+    } else {
+        form.remedial_student_ids.push(studentId);
+    }
+};
 
 const submit = () => {
     form.post(route('guru.cbt.exam.store'), {
@@ -40,7 +61,7 @@ const submit = () => {
 </script>
 
 <template>
-    <Modal :show="show" title="Buat Jadwal Ujian CBT Baru" max-width="md" @close="emit('close')">
+    <Modal :show="show" title="Buat Paket Ujian CBT Baru" max-width="lg" @close="emit('close')">
         <form @submit.prevent="submit" class="space-y-3">
             <FormField label="Mata Pelajaran" :error="form.errors.subject_name" required>
                 <AppSelect
@@ -49,7 +70,7 @@ const submit = () => {
                 />
             </FormField>
 
-            <FormField label="Judul Ujian" :error="form.errors.title" required>
+            <FormField label="Judul Paket Ujian" :error="form.errors.title" required>
                 <AppInput
                     v-model="form.title"
                     placeholder="Contoh: Penilaian Harian PAI Bab 1"
@@ -93,6 +114,42 @@ const submit = () => {
                 </FormField>
             </div>
 
+            <FormField label="Aturan Penilaian (Scoring Rule)" required>
+                <AppSelect
+                    v-model="form.scoring_rule"
+                    :options="scoringRuleOptions"
+                />
+            </FormField>
+
+            <!-- Randomization Toggles -->
+            <div class="grid grid-cols-2 gap-3 p-2.5 rounded-control bg-surface-raised border border-line">
+                <AppCheckbox v-model="form.randomize_questions" label="Acak Urutan Soal" />
+                <AppCheckbox v-model="form.randomize_options" label="Acak Pilihan Opsi" />
+            </div>
+
+            <!-- Remedial Option -->
+            <div class="p-2.5 rounded-control bg-surface-raised border border-line space-y-2">
+                <AppCheckbox v-model="form.is_remedial" label="Paket Ujian Remedial (Hanya Siswa Sasaran Tertentu)" />
+
+                <div v-if="form.is_remedial" class="space-y-1.5 pt-1">
+                    <span class="text-[11px] text-ink-muted block font-semibold">Pilih Siswa Sasaran Remedial:</span>
+                    <div class="max-h-36 overflow-y-auto border border-line rounded-control p-2 space-y-1 bg-surface">
+                        <div
+                            v-for="s in students"
+                            :key="s.id"
+                            class="flex items-center gap-2 text-xs text-ink hover:bg-surface-raised p-1 rounded"
+                        >
+                            <AppCheckbox
+                                :model-value="form.remedial_student_ids"
+                                :value="s.id"
+                                :label="`${s.name} (${s.nis} - ${s.class})`"
+                                @update:model-value="form.remedial_student_ids = $event"
+                            />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <FormField label="Petunjuk / Tata Tertib Ujian" :error="form.errors.description">
                 <AppTextarea
                     v-model="form.description"
@@ -112,4 +169,3 @@ const submit = () => {
         </form>
     </Modal>
 </template>
-

@@ -35,10 +35,6 @@ const printBap = (violation) => {
     activeViolation.value = violation;
     showBapModal.value = true;
 };
-
-const printDoc = () => {
-    window.print();
-};
 </script>
 
 <template>
@@ -209,7 +205,9 @@ const printDoc = () => {
 
                 <div class="flex justify-end gap-2 pt-3 border-t border-line print:hidden">
                     <AppButton size="sm" variant="ghost" @click="showBapModal = false">Tutup</AppButton>
-                    <AppButton size="sm" variant="primary" @click="printDoc">Cetak BAP Resmi</AppButton>
+                    <a v-if="activeViolation?.id" :href="route('guru.bk.bap.pdf', { violation: activeViolation.id })" target="_blank">
+                        <AppButton size="sm" variant="primary">📥 Unduh BAP Resmi (PDF)</AppButton>
+                    </a>
                 </div>
             </div>
         </Modal>

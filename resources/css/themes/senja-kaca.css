@@ -1,0 +1,76 @@
+/**
+ * SIMSE Theme: Senja Kaca
+ * Suasana: Lembut, modern, ramah, teduh
+ * Default untuk: Portal Orang Tua / Wali Siswa
+ */
+
+[data-theme="senja-kaca"] {
+    /* Brand Scale: Violet Lembayung Senja */
+    --brand-50: #FAF5FF;
+    --brand-100: #F3E8FF;
+    --brand-200: #E9D5FF;
+    --brand-300: #D8B4FE;
+    --brand-400: #A855F7;
+    --brand-500: #8B5CF6;
+    --brand-600: #6D4AD6;
+    --brand-700: #5B21B6;
+    --brand-800: #4C1D95;
+    --brand-900: #2E1065;
+    --brand-fg: #FFFFFF;
+
+    /* Accent Scale: Persik Hangat Ramah */
+    --accent-50: #FFF7ED;
+    --accent-100: #FFEDD5;
+    --accent-200: #FED7AA;
+    --accent-300: #FDBA74;
+    --accent-400: #FB923C;
+    --accent-500: #F08A6C;
+    --accent-600: #EA580C;
+    --accent-700: #C2410C;
+    --accent-800: #9A3412;
+    --accent-900: #7C2D12;
+    --accent-fg: #FFFFFF;
+
+    /* Surfaces: Gradien Lembut Lavender-Persik */
+    --surface: #FCF7F9;
+    --surface-raised: #F7EEF3;
+    --surface-sunken: #EFE1EA;
+
+    /* Typography / Ink: Ungu Pekat Teduh */
+    --ink: #2B2140;
+    --ink-muted: #5E5473;
+
+    /* Borders & Focus */
+    --line: #E6D3E0;
+    --focus: #6D4AD6;
+
+    /* Semantic Status (WCAG AA >= 4.5:1) */
+    --success-bg: #F0FDF4;
+    --success-fg: #166534;
+    --success-line: #BBF7D0;
+
+    --warning-bg: #FFFBEB;
+    --warning-fg: #92400E;
+    --warning-line: #FDE68A;
+
+    --danger-bg: #FFF1F2;
+    --danger-fg: #9F1239;
+    --danger-line: #FECDD3;
+
+    --info-bg: #F5F3FF;
+    --info-fg: #5B21B6;
+    --info-line: #DDD6FE;
+
+    /* Shapes & Elevation: Kaca Halus & Rounded Lembut */
+    --radius-card: 1rem;
+    --radius-control: 0.625rem;
+    --shadow-card: 0 2px 8px -1px rgba(43, 33, 64, 0.06), 0 1px 3px -1px rgba(43, 33, 64, 0.04);
+    --shadow-pop: 0 14px 24px -4px rgba(43, 33, 64, 0.12), 0 6px 8px -2px rgba(43, 33, 64, 0.06);
+
+    /* Typography families & density */
+    --font-display: 'Plus Jakarta Sans', system-ui, sans-serif;
+    --font-body: 'Figtree', system-ui, -apple-system, sans-serif;
+    --font-numeric: 'Plus Jakarta Sans', monospace;
+    --density: 1;
+}
+

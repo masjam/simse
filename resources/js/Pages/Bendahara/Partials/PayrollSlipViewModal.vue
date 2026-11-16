@@ -11,10 +11,6 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['close']);
-
-const printSlip = () => {
-    window.print();
-};
 </script>
 
 <template>
@@ -61,13 +57,14 @@ const printSlip = () => {
             </div>
 
             <div class="pt-2">
-                <AppButton
-                    variant="primary"
-                    class="w-full"
-                    @click="printSlip"
-                >
-                    🖨️ Cetak Slip Gaji Resmi
-                </AppButton>
+                <a v-if="payroll.id" :href="route('bendahara.payroll.pdf', { payroll: payroll.id })" target="_blank" class="block w-full">
+                    <AppButton
+                        variant="primary"
+                        class="w-full"
+                    >
+                        📥 Unduh Slip Gaji Resmi (PDF)
+                    </AppButton>
+                </a>
             </div>
         </div>
     </Modal>

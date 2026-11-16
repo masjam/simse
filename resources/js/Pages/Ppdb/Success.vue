@@ -87,7 +87,7 @@ const printSlip = () => {
                     >
                         🖨️ Cetak Bukti Pendaftaran
                     </AppButton>
-                    <Link :href="route('welcome')">
+                    <Link :href="route('home')">
                         <AppButton
                             variant="primary"
                             size="md"

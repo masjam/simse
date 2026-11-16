@@ -8,6 +8,7 @@ use App\Models\PayrollComponent;
 use App\Models\Role;
 use App\Models\Teacher;
 use App\Models\User;
+use App\Services\Payroll\AdvanceService;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -158,6 +159,8 @@ class PayrollController extends BaseBendaharaController
                     'amount' => $bpjsDeduction,
                 ]);
 
+                app(AdvanceService::class)->applyPendingInstallmentToPayroll($payroll);
+
                 $generatedCount++;
             }
 
@@ -212,6 +215,8 @@ class PayrollController extends BaseBendaharaController
                     'name' => 'Iuran BPJS Kesehatan',
                     'amount' => $bpjsDeduction,
                 ]);
+
+                app(AdvanceService::class)->applyPendingInstallmentToPayroll($payroll);
 
                 $generatedCount++;
             }

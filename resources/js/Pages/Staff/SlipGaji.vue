@@ -13,10 +13,6 @@ defineProps({
     slipGaji: { type: Object, default: null },
     payrollHistory: { type: Array, required: true },
 });
-
-const printSlip = () => {
-    window.print();
-};
 </script>
 
 <template>
@@ -49,14 +45,15 @@ const printSlip = () => {
                             Periode: {{ slipGaji.month }} • Status: <strong class="uppercase text-white">{{ slipGaji.status }}</strong>
                         </p>
                     </div>
-                    <AppButton
-                        variant="secondary"
-                        size="lg"
-                        class="shadow-card"
-                        @click="printSlip"
-                    >
-                        🖨️ Cetak / Simpan PDF
-                    </AppButton>
+                    <a v-if="slipGaji.id" :href="route('bendahara.payroll.pdf', { payroll: slipGaji.id })" target="_blank">
+                        <AppButton
+                            variant="secondary"
+                            size="lg"
+                            class="shadow-card"
+                        >
+                            📥 Unduh Slip PDF
+                        </AppButton>
+                    </a>
                 </div>
 
                 <!-- Rincian Slip Gaji Format Resmi -->

@@ -105,13 +105,14 @@ async function triggerConfirm() {
             :breadcrumbs="[{ label: 'Pengembang' }, { label: 'Design System' }]"
         >
             <template #actions>
-                <div class="flex items-center gap-2 bg-surface p-1.5 rounded-control border border-line">
-                    <span class="text-xs font-semibold text-ink-muted px-2">Tema:</span>
+                <div class="flex items-center flex-wrap gap-1.5 bg-surface p-1.5 rounded-control border border-line">
+                    <span class="text-xs font-semibold text-ink-muted px-1.5">Tema:</span>
                     <AppButton
-                        v-for="t in ['madinah', 'madinah-gelap', 'uji-gelap']"
+                        v-for="t in ['madinah', 'taman-belajar', 'kertas-tinta', 'ledger-tegas', 'senja-kaca', 'pasar-kantin', 'fokus-ujian', 'madinah-gelap', 'uji-gelap']"
                         :key="t"
                         :variant="currentTheme === t ? 'primary' : 'ghost'"
                         size="sm"
+                        class="!text-[11px] !py-1 !px-2"
                         @click="applyTheme(t)"
                     >
                         {{ t }}

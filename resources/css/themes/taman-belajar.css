@@ -1,0 +1,76 @@
+/**
+ * SIMSE Theme: Taman Belajar
+ * Suasana: Ceria, hangat, seperti buku cerita
+ * Default untuk: Siswa tingkat 1-3 (Mode Anak)
+ */
+
+[data-theme="taman-belajar"] {
+    /* Brand Scale: Biru Langit Ceria */
+    --brand-50: #EFF6FF;
+    --brand-100: #DBEAFE;
+    --brand-200: #BFDBFE;
+    --brand-300: #93C5FD;
+    --brand-400: #60A5FA;
+    --brand-500: #3B82F6;
+    --brand-600: #1D6FD8;
+    --brand-700: #1D4ED8;
+    --brand-800: #1E40AF;
+    --brand-900: #172554;
+    --brand-fg: #FFFFFF;
+
+    /* Accent Scale: Kuning Mentari Hangat */
+    --accent-50: #FEFCE8;
+    --accent-100: #FEF9C3;
+    --accent-200: #FEF08A;
+    --accent-300: #FDE047;
+    --accent-400: #FACC15;
+    --accent-500: #F5B301;
+    --accent-600: #CA8A04;
+    --accent-700: #A16207;
+    --accent-800: #854D0E;
+    --accent-900: #713F12;
+    --accent-fg: #1E293B;
+
+    /* Surfaces */
+    --surface: #FFFBEB;
+    --surface-raised: #FEF3C7;
+    --surface-sunken: #FDE68A;
+
+    /* Typography / Ink */
+    --ink: #1E293B;
+    --ink-muted: #475569;
+
+    /* Borders & Focus */
+    --line: #FCD34D;
+    --focus: #1D6FD8;
+
+    /* Semantic Status (WCAG AA >= 4.5:1) */
+    --success-bg: #ECFDF5;
+    --success-fg: #065F46;
+    --success-line: #6EE7B7;
+
+    --warning-bg: #FEF3C7;
+    --warning-fg: #92400E;
+    --warning-line: #FCD34D;
+
+    --danger-bg: #FEF2F2;
+    --danger-fg: #991B1B;
+    --danger-line: #FCA5A5;
+
+    --info-bg: #EFF6FF;
+    --info-fg: #1E40AF;
+    --info-line: #93C5FD;
+
+    /* Shapes & Elevation: Bulat Ramah & Menonjol */
+    --radius-card: 1.5rem;
+    --radius-control: 0.875rem;
+    --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+    --shadow-pop: 0 12px 20px -4px rgba(0, 0, 0, 0.12), 0 4px 6px -2px rgba(0, 0, 0, 0.06);
+
+    /* Typography families & density */
+    --font-display: 'Fredoka', 'Figtree', cursive, sans-serif;
+    --font-body: 'Figtree', system-ui, -apple-system, sans-serif;
+    --font-numeric: 'Fredoka', monospace;
+    --density: 1.1;
+}
+

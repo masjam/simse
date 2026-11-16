@@ -3,16 +3,22 @@ import { ref, reactive, computed, onMounted, onBeforeUnmount } from 'vue';
 import { Head, router } from '@inertiajs/vue3';
 import PortalShell from '@/Layouts/PortalShell.vue';
 import AppButton from '@/Components/ui/AppButton.vue';
-import AppTextarea from '@/Components/ui/AppTextarea.vue';
-import ExamOptionButton from '@/Components/domain/ExamOptionButton.vue';
 import ExamFinishedCard from './Partials/ExamFinishedCard.vue';
 import ExamTimerBar from './Partials/ExamTimerBar.vue';
+import MultipleChoiceQuestion from './Partials/Questions/MultipleChoiceQuestion.vue';
+import ComplexChoiceQuestion from './Partials/Questions/ComplexChoiceQuestion.vue';
+import TrueFalseQuestion from './Partials/Questions/TrueFalseQuestion.vue';
+import MatchingQuestion from './Partials/Questions/MatchingQuestion.vue';
+import FillInBlankQuestion from './Partials/Questions/FillInBlankQuestion.vue';
+import EssayQuestion from './Partials/Questions/EssayQuestion.vue';
 
 const props = defineProps({
     student: { type: Object, required: true },
+    studentLevel: { type: Number, default: 4 },
     exam: { type: Object, required: true },
     attempt: { type: Object, required: true },
     remainingSeconds: { type: Number, required: true },
+    serverNow: { type: String, default: null },
     questions: { type: Array, default: () => [] },
 });
 
@@ -24,23 +30,36 @@ const savingState = ref('Siap');
 const antiCheatWarning = ref('');
 const submitting = ref(false);
 const fontSize = ref('md'); // 'sm' | 'md' | 'lg'
+const childMode = ref(props.studentLevel <= 3);
 
+// Initialize answers reactive state
 const answers = reactive({});
-props.questions.forEach((question) => {
-    const saved = props.attempt.answers?.[question.id] || {};
-    answers[question.id] = {
+props.questions.forEach((q) => {
+    const saved = props.attempt.answers?.[q.id] || {};
+    answers[q.id] = {
         option_id: saved.option_id || null,
+        option_ids: saved.option_ids || [],
+        pairs: saved.pairs || {},
+        blanks: saved.blanks || [],
         text_answer: saved.text_answer || '',
     };
 });
 
 const currentQuestion = computed(() => props.questions[currentIndex.value] || null);
 
+const isQuestionAnswered = (qId) => {
+    const ans = answers[qId];
+    if (!ans) return false;
+    if (ans.option_id) return true;
+    if (Array.isArray(ans.option_ids) && ans.option_ids.length > 0) return true;
+    if (ans.pairs && Object.keys(ans.pairs).length > 0 && Object.values(ans.pairs).some(Boolean)) return true;
+    if (Array.isArray(ans.blanks) && ans.blanks.some((b) => b && String(b).trim() !== '')) return true;
+    if (ans.text_answer && ans.text_answer.trim() !== '') return true;
+    return false;
+};
+
 const answeredCount = computed(() => {
-    return props.questions.filter((q) => {
-        const ans = answers[q.id];
-        return Boolean(ans?.option_id || (ans?.text_answer && ans.text_answer.trim() !== ''));
-    }).length;
+    return props.questions.filter((q) => isQuestionAnswered(q.id)).length;
 });
 
 const formattedTimer = computed(() => {
@@ -52,41 +71,104 @@ const formattedTimer = computed(() => {
     return hrs > 0 ? `${pad(hrs)}:${pad(mins)}:${pad(secs)}` : `${pad(mins)}:${pad(secs)}`;
 });
 
+// Offline resilience & LocalStorage caching
+const localCacheKey = `simse_cbt_attempt_${props.attempt.id}`;
+
+const saveToLocalStorage = () => {
+    try {
+        localStorage.setItem(localCacheKey, JSON.stringify({
+            answers,
+            timestamp: new Date().toISOString(),
+        }));
+    } catch {
+        // storage quota fallback
+    }
+};
+
+const syncPendingAnswers = async () => {
+    if (!navigator.onLine || props.attempt.is_finished) return;
+    try {
+        const cached = localStorage.getItem(localCacheKey);
+        if (cached) {
+            savingState.value = 'Sinkronisasi...';
+            // Trigger auto-save of current state
+            if (currentQuestion.value) {
+                await saveAnswerToServer(currentQuestion.value.id);
+            }
+        }
+    } catch {
+        // ignore
+    }
+};
+
+let debounceSaveTimer = null;
 const saveAnswerToServer = async (questionId) => {
     if (props.attempt.is_finished || submitting.value) return;
 
+    saveToLocalStorage();
     savingState.value = 'Menyimpan...';
+
+    if (!navigator.onLine) {
+        savingState.value = 'Tersimpan lokal (Offline)';
+        return;
+    }
+
     try {
-        const response = await window.axios.post(route('siswa.cbt.answer', props.exam.id), {
+        const payload = {
             question_id: questionId,
             option_id: answers[questionId]?.option_id || null,
+            option_ids: answers[questionId]?.option_ids || null,
+            pairs: answers[questionId]?.pairs || null,
+            blanks: answers[questionId]?.blanks || null,
             text_answer: answers[questionId]?.text_answer || null,
-        });
+        };
+
+        const response = await window.axios.post(route('siswa.cbt.answer', props.exam.id), payload);
 
         if (typeof response.data.remaining_seconds === 'number') {
             secondsLeft.value = response.data.remaining_seconds;
         }
         savingState.value = 'Tersimpan';
     } catch (error) {
-        savingState.value = 'Gagal simpan';
         if (error.response?.data?.forced_submit) {
             router.reload();
+        } else {
+            savingState.value = 'Menunggu jaringan';
         }
     }
 };
 
-const selectOption = (questionId, optionId) => {
+const triggerDebouncedSave = (questionId) => {
+    clearTimeout(debounceSaveTimer);
+    debounceSaveTimer = setTimeout(() => {
+        saveAnswerToServer(questionId);
+    }, 400);
+};
+
+// Handlers per question type
+const onSingleSelect = (questionId, optionId) => {
     answers[questionId].option_id = optionId;
     saveAnswerToServer(questionId);
 };
 
-let essayTimer = null;
-const onEssayInput = (questionId, value) => {
-    answers[questionId].text_answer = value;
-    clearTimeout(essayTimer);
-    essayTimer = setTimeout(() => {
-        saveAnswerToServer(questionId);
-    }, 500);
+const onComplexSelect = (questionId, optionIds) => {
+    answers[questionId].option_ids = optionIds;
+    saveAnswerToServer(questionId);
+};
+
+const onMatchingChange = (questionId, pairsData) => {
+    answers[questionId].pairs = pairsData;
+    saveAnswerToServer(questionId);
+};
+
+const onBlanksChange = (questionId, blanksData) => {
+    answers[questionId].blanks = blanksData;
+    triggerDebouncedSave(questionId);
+};
+
+const onEssayChange = (questionId, text) => {
+    answers[questionId].text_answer = text;
+    triggerDebouncedSave(questionId);
 };
 
 const submitFinalExam = (isForced = false) => {
@@ -99,6 +181,11 @@ const submitFinalExam = (isForced = false) => {
         {
             onFinish: () => {
                 submitting.value = false;
+                try {
+                    localStorage.removeItem(localCacheKey);
+                } catch {
+                    // ignore
+                }
             },
         }
     );
@@ -117,7 +204,7 @@ const recordViolation = async (type, message) => {
             router.reload();
         }
     } catch {
-        // ignore network error
+        // ignore
     }
 };
 
@@ -161,6 +248,7 @@ onMounted(() => {
     document.addEventListener('contextmenu', handleContextMenu);
     document.addEventListener('visibilitychange', handleVisibilityChange);
     document.addEventListener('fullscreenchange', handleFullscreenChange);
+    window.addEventListener('online', syncPendingAnswers);
 
     countdownInterval = setInterval(() => {
         if (secondsLeft.value > 0) secondsLeft.value -= 1;
@@ -173,10 +261,11 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
     clearInterval(countdownInterval);
-    clearTimeout(essayTimer);
+    clearTimeout(debounceSaveTimer);
     document.removeEventListener('contextmenu', handleContextMenu);
     document.removeEventListener('visibilitychange', handleVisibilityChange);
     document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    window.removeEventListener('online', syncPendingAnswers);
 });
 </script>
 
@@ -205,9 +294,11 @@ onBeforeUnmount(() => {
                     :is-fullscreen="isFullscreen"
                     :submitting="submitting"
                     :font-size="fontSize"
+                    :child-mode="childMode"
                     @toggle-fullscreen="enterFullscreen"
                     @submit-exam="submitFinalExam(false)"
                     @change-font-size="fontSize = $event"
+                    @toggle-child-mode="childMode = !childMode"
                 />
 
                 <!-- Anti-Cheat Alert -->
@@ -225,59 +316,102 @@ onBeforeUnmount(() => {
                         v-if="currentQuestion"
                         class="lg:col-span-3 bg-surface rounded-card border border-line p-5 sm:p-6 shadow-card space-y-5"
                     >
-                        <div class="flex items-center justify-between border-b border-line pb-3">
+                        <div class="flex items-center justify-between border-b border-line pb-3 flex-wrap gap-2">
                             <span class="px-2.5 py-1 rounded-control bg-brand-50 text-brand-700 text-xs font-bold font-mono">
                                 Soal Nomor {{ currentIndex + 1 }} &bull; {{ currentQuestion.type }}
                             </span>
-                            <span class="text-xs text-ink-muted font-bold">
-                                Bobot: {{ currentQuestion.marks }} Poin
-                            </span>
+                            <div class="flex items-center gap-2">
+                                <span v-if="childMode" class="px-2 py-0.5 rounded-full bg-status-warning-bg text-status-warning-fg border border-status-warning-line text-[10px] font-bold">
+                                    Mode Anak
+                                </span>
+                                <span class="text-xs text-ink-muted font-bold font-mono">
+                                    Bobot: {{ currentQuestion.marks }} Poin
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Question Image Attachment -->
+                        <div v-if="currentQuestion.image_url" class="rounded-card border border-line p-2 bg-surface-raised flex justify-center">
+                            <img
+                                :src="currentQuestion.image_url"
+                                alt="Gambar Soal"
+                                class="max-h-64 rounded-control object-contain"
+                            />
                         </div>
 
                         <!-- Question Content with Dynamic Font Size -->
                         <div
                             class="text-ink leading-relaxed whitespace-pre-line font-medium"
                             :class="{
-                                'text-xs sm:text-sm': fontSize === 'sm',
-                                'text-sm sm:text-base': fontSize === 'md',
-                                'text-base sm:text-lg': fontSize === 'lg',
+                                'text-xs sm:text-sm': fontSize === 'sm' && !childMode,
+                                'text-sm sm:text-base': fontSize === 'md' && !childMode,
+                                'text-base sm:text-lg': fontSize === 'lg' || childMode,
                             }"
                         >
                             {{ currentQuestion.content }}
                         </div>
 
-                        <!-- Options for Pilihan Ganda / Benar Salah -->
-                        <div
-                            v-if="currentQuestion.type === 'Pilihan Ganda' || currentQuestion.type === 'Benar Salah'"
-                            class="space-y-2.5 pt-2"
-                        >
-                            <ExamOptionButton
-                                v-for="(option, optIndex) in currentQuestion.options"
-                                :key="option.id"
-                                :selected="answers[currentQuestion.id]?.option_id === option.id"
-                                :letter="String.fromCharCode(65 + optIndex)"
-                                :text="option.content"
-                                :font-size="fontSize"
-                                @click="selectOption(currentQuestion.id, option.id)"
+                        <!-- Interactive Question Renderers -->
+                        <div class="pt-2">
+                            <!-- 1. Pilihan Ganda -->
+                            <MultipleChoiceQuestion
+                                v-if="currentQuestion.type === 'Pilihan Ganda'"
+                                :question="currentQuestion"
+                                :model-value="answers[currentQuestion.id]?.option_id"
+                                :child-mode="childMode"
+                                @update:model-value="onSingleSelect(currentQuestion.id, $event)"
                             />
-                        </div>
 
-                        <!-- Essay Input Box -->
-                        <div v-else class="space-y-2 pt-2">
-                            <label class="block text-xs font-bold text-ink-muted">Jawaban Esai Anda:</label>
-                            <AppTextarea
-                                :model-value="answers[currentQuestion.id].text_answer"
-                                :rows="6"
-                                placeholder="Tuliskan jawaban esai Anda secara lengkap dan jelas..."
-                                @update:model-value="onEssayInput(currentQuestion.id, $event)"
-                                @blur="saveAnswerToServer(currentQuestion.id)"
+                            <!-- 2. Ganda Kompleks -->
+                            <ComplexChoiceQuestion
+                                v-else-if="currentQuestion.type === 'Ganda Kompleks'"
+                                :question="currentQuestion"
+                                :model-value="answers[currentQuestion.id]?.option_ids || []"
+                                :child-mode="childMode"
+                                @update:model-value="onComplexSelect(currentQuestion.id, $event)"
+                            />
+
+                            <!-- 3. Benar Salah -->
+                            <TrueFalseQuestion
+                                v-else-if="currentQuestion.type === 'Benar Salah'"
+                                :question="currentQuestion"
+                                :model-value="answers[currentQuestion.id]?.option_id"
+                                :child-mode="childMode"
+                                @update:model-value="onSingleSelect(currentQuestion.id, $event)"
+                            />
+
+                            <!-- 4. Menjodohkan -->
+                            <MatchingQuestion
+                                v-else-if="currentQuestion.type === 'Menjodohkan'"
+                                :question="currentQuestion"
+                                :model-value="answers[currentQuestion.id]?.pairs || {}"
+                                :child-mode="childMode"
+                                @update:model-value="onMatchingChange(currentQuestion.id, $event)"
+                            />
+
+                            <!-- 5. Isian Rumpang -->
+                            <FillInBlankQuestion
+                                v-else-if="currentQuestion.type === 'Isian Rumpang'"
+                                :question="currentQuestion"
+                                :model-value="answers[currentQuestion.id]?.blanks || []"
+                                :child-mode="childMode"
+                                @update:model-value="onBlanksChange(currentQuestion.id, $event)"
+                            />
+
+                            <!-- 6. Esai -->
+                            <EssayQuestion
+                                v-else-if="currentQuestion.type === 'Esai'"
+                                :question="currentQuestion"
+                                :model-value="answers[currentQuestion.id]?.text_answer || ''"
+                                :child-mode="childMode"
+                                @update:model-value="onEssayChange(currentQuestion.id, $event)"
                             />
                         </div>
 
                         <!-- Prev / Next Navigation Buttons -->
                         <div class="flex items-center justify-between pt-4 border-t border-line">
                             <AppButton
-                                size="sm"
+                                :size="childMode ? 'md' : 'sm'"
                                 variant="secondary"
                                 :disabled="currentIndex === 0"
                                 @click="currentIndex = Math.max(0, currentIndex - 1)"
@@ -285,7 +419,7 @@ onBeforeUnmount(() => {
                                 &larr; Sebelumnya
                             </AppButton>
                             <AppButton
-                                size="sm"
+                                :size="childMode ? 'md' : 'sm'"
                                 variant="primary"
                                 :disabled="currentIndex >= questions.length - 1"
                                 @click="currentIndex = Math.min(questions.length - 1, currentIndex + 1)"
@@ -297,19 +431,23 @@ onBeforeUnmount(() => {
 
                     <!-- Right Column: Question Numbers Grid -->
                     <div class="bg-surface rounded-card border border-line p-4 shadow-card space-y-3 h-fit">
-                        <h4 class="text-xs font-bold uppercase tracking-wider text-ink-muted">
-                            Daftar Nomor Soal
-                        </h4>
-                        <div class="grid grid-cols-5 gap-1.5">
+                        <div class="flex items-center justify-between">
+                            <h4 class="text-xs font-bold uppercase tracking-wider text-ink-muted">
+                                Nomor Soal
+                            </h4>
+                            <span class="text-xs font-mono font-bold text-ink">
+                                {{ answeredCount }}/{{ questions.length }}
+                            </span>
+                        </div>
+
+                        <div class="grid grid-cols-5 gap-1.5 max-h-72 overflow-y-auto p-0.5">
                             <AppButton
                                 v-for="(q, idx) in questions"
                                 :key="q.id"
                                 size="sm"
-                                :variant="Boolean(answers[q.id]?.option_id || (answers[q.id]?.text_answer && answers[q.id].text_answer.trim() !== '')) ? 'primary' : 'secondary'"
+                                :variant="isQuestionAnswered(q.id) ? 'primary' : 'secondary'"
                                 class="!h-9 !p-0 justify-center font-mono font-bold text-xs"
-                                :class="{
-                                    'ring-2 ring-brand-500 font-black': currentIndex === idx,
-                                }"
+                                :class="{ 'ring-2 ring-brand-500 ring-offset-1 font-black': currentIndex === idx }"
                                 @click="currentIndex = idx"
                             >
                                 {{ idx + 1 }}

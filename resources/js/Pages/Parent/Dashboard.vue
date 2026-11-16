@@ -12,6 +12,8 @@ import KeuanganTab from './Partials/KeuanganTab.vue';
 import PerilakuTab from './Partials/PerilakuTab.vue';
 import PrestasiModal from './Partials/PrestasiModal.vue';
 import PayInfoModal from './Partials/PayInfoModal.vue';
+import NotificationPreferencesModal from './Partials/NotificationPreferencesModal.vue';
+import AppButton from '@/Components/ui/AppButton.vue';
 
 const props = defineProps({
     children: {
@@ -25,6 +27,10 @@ const props = defineProps({
     activeTab: {
         type: String,
         default: 'akademik',
+    },
+    notificationPreferences: {
+        type: Object,
+        default: () => ({}),
     },
     overview: {
         type: Object,
@@ -55,6 +61,7 @@ const props = defineProps({
 const currentTab = ref(props.activeTab || 'akademik');
 const showAchievementModal = ref(false);
 const showPaymentModal = ref(false);
+const showNotificationModal = ref(false);
 
 watch(
     () => props.activeTab,
@@ -79,7 +86,13 @@ const tabs = [
             <PageHeader
                 title="Portal Orang Tua"
                 :description="`SD Muhammadiyah Al Mujahidin Wonosari • Pendampingan Ananda ${activeChild.name}`"
-            />
+            >
+                <template #actions>
+                    <AppButton size="sm" variant="secondary" @click="showNotificationModal = true">
+                        Preferensi Notifikasi
+                    </AppButton>
+                </template>
+            </PageHeader>
         </template>
 
         <div class="space-y-5">
@@ -143,6 +156,12 @@ const tabs = [
             :show="showPaymentModal"
             :active-child="activeChild"
             @close="showPaymentModal = false"
+        />
+
+        <NotificationPreferencesModal
+            :show="showNotificationModal"
+            :preferences="notificationPreferences"
+            @close="showNotificationModal = false"
         />
     </PortalShell>
 </template>

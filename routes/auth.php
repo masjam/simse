@@ -9,6 +9,7 @@ use App\Http\Controllers\Auth\ParentOtpController;
 use App\Http\Controllers\Auth\PasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
+use App\Http\Controllers\Auth\TwoFactorAuthenticationController;
 use App\Http\Controllers\Auth\VerifyEmailController;
 use Illuminate\Support\Facades\Route;
 
@@ -21,7 +22,16 @@ Route::middleware('guest')->group(function () {
     Route::get('login', [AuthenticatedSessionController::class, 'create'])
         ->name('login');
 
-    Route::post('login', [AuthenticatedSessionController::class, 'store']);
+    Route::post('login', [AuthenticatedSessionController::class, 'store'])
+        ->middleware('throttle:login');
+
+    // 2FA Challenge saat login
+    Route::get('two-factor-challenge', [TwoFactorAuthenticationController::class, 'challenge'])
+        ->name('two-factor.login');
+
+    Route::post('two-factor-challenge', [TwoFactorAuthenticationController::class, 'verifyChallenge'])
+        ->middleware('throttle:login')
+        ->name('two-factor.verify');
 
     Route::get('{role}/login', [AuthenticatedSessionController::class, 'create'])
         ->whereIn('role', ['siswa', 'guru', 'ortu', 'admin', 'staf', 'bendahara', 'kantin', 'ppdb', 'bk'])
@@ -29,12 +39,14 @@ Route::middleware('guest')->group(function () {
 
     Route::post('{role}/login', [AuthenticatedSessionController::class, 'store'])
         ->whereIn('role', ['siswa', 'guru', 'ortu', 'admin', 'staf', 'bendahara', 'kantin', 'ppdb', 'bk'])
+        ->middleware('throttle:login')
         ->name('role.login.store');
 
     Route::get('ortu/otp', [ParentOtpController::class, 'create'])
         ->name('ortu.otp');
 
     Route::post('ortu/otp/request', [ParentOtpController::class, 'requestOtp'])
+        ->middleware('throttle:parent_otp')
         ->name('ortu.otp.request');
 
     Route::post('ortu/otp/verify', [ParentOtpController::class, 'verifyOtp'])
@@ -71,6 +83,16 @@ Route::middleware('auth')->group(function () {
     Route::post('confirm-password', [ConfirmablePasswordController::class, 'store']);
 
     Route::put('password', [PasswordController::class, 'update'])->name('password.update');
+
+    // Manajemen 2FA (TOTP)
+    Route::post('user/two-factor-authentication', [TwoFactorAuthenticationController::class, 'store'])
+        ->name('two-factor.enable');
+
+    Route::post('user/confirmed-two-factor-authentication', [TwoFactorAuthenticationController::class, 'confirm'])
+        ->name('two-factor.confirm');
+
+    Route::delete('user/two-factor-authentication', [TwoFactorAuthenticationController::class, 'destroy'])
+        ->name('two-factor.disable');
 
     Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])
         ->name('logout');

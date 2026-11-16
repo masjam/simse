@@ -5,6 +5,14 @@
  * All color values are defined as hex/rgb to allow contrast calculation in check-contrast.mjs
  */
 
+@import './themes/madinah.css';
+@import './themes/taman-belajar.css';
+@import './themes/kertas-tinta.css';
+@import './themes/ledger-tegas.css';
+@import './themes/senja-kaca.css';
+@import './themes/pasar-kantin.css';
+@import './themes/fokus-ujian.css';
+
 :root,
 [data-theme="madinah"] {
     /* Brand Scale: Islamic Emerald / Teal */

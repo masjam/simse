@@ -7,12 +7,14 @@ use App\Http\Requests\ParentPortal\StoreParentAchievementRequest;
 use App\Http\Requests\ParentPortal\SwitchChildRequest;
 use App\Models\Bill;
 use App\Models\CounselingSession;
+use App\Models\ParentNotificationPreference;
 use App\Models\Payment;
 use App\Models\Student;
 use App\Models\StudentAchievement;
 use App\Models\StudentViolation;
 use App\Models\Wallet;
 use App\Models\WalletTransaction;
+use App\Services\Gamification\PointService;
 use App\Services\StudentAcademicSummaryService;
 use Carbon\Carbon;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
@@ -35,6 +37,7 @@ class ParentPortalController extends Controller
 
     public function dashboard(Request $request): Response
     {
+        $user = $request->user();
         [$children, $activeChild] = $this->resolveChildrenAndActive($request);
 
         $gradesData = $this->academicSummary->gradesAndRaport($activeChild);
@@ -61,10 +64,23 @@ class ParentPortalController extends Controller
         $requestedTab = (string) $request->query('tab', 'akademik');
         $activeTab = in_array($requestedTab, $allowedTabs, true) ? $requestedTab : 'akademik';
 
+        $notificationPreferences = ParentNotificationPreference::firstOrCreate(
+            ['user_id' => $user->id],
+            [
+                'channel_wa' => true,
+                'channel_in_app' => true,
+                'notify_attendance' => true,
+                'notify_finance' => true,
+                'notify_grades' => true,
+                'notify_discipline' => true,
+            ]
+        );
+
         return Inertia::render('Parent/Dashboard', [
             'children' => $children->map(fn (Student $child): array => $this->formatChildCard($child))->values(),
             'activeChild' => $this->formatChildCard($activeChild),
             'activeTab' => $activeTab,
+            'notificationPreferences' => $notificationPreferences,
             'overview' => [
                 'average_score' => $averageScore,
                 'attendance_pct' => $attendancePct,
@@ -79,6 +95,8 @@ class ParentPortalController extends Controller
                 'schedules' => $schedules,
                 'weeklyJournals' => $weeklyJournals,
                 'achievements' => $this->academicSummary->approvedAchievements($activeChild),
+                'gamification' => app(PointService::class)->getStudentProfile($activeChild),
+                'gamification' => app(PointService::class)->getStudentProfile($activeChild),
             ],
             'presensi' => [
                 'summary' => $attendanceSummary,

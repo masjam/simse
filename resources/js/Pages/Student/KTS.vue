@@ -9,10 +9,6 @@ import Avatar from '@/Components/ui/Avatar.vue';
 defineProps({
     student: { type: Object, required: true },
 });
-
-const printKts = () => {
-    window.print();
-};
 </script>
 
 <template>
@@ -103,9 +99,11 @@ const printKts = () => {
             </div>
 
             <div class="flex justify-center print:hidden">
-                <AppButton variant="primary" size="md" @click="printKts">
-                    Cetak Kartu Tanda Siswa
-                </AppButton>
+                <a :href="route('siswa.kts.pdf')" target="_blank">
+                    <AppButton variant="primary" size="md">
+                        📥 Unduh KTS Resmi (PDF)
+                    </AppButton>
+                </a>
             </div>
         </div>
     </PortalShell>

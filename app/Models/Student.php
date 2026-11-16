@@ -2,15 +2,18 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\Auditable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Student extends Model
 {
-    use HasUuids;
+    use Auditable, HasUuids, SoftDeletes;
 
     protected $guarded = ['id'];
 
@@ -72,6 +75,38 @@ class Student extends Model
     public function examAttempts(): HasMany
     {
         return $this->hasMany(ExamAttempt::class);
+    }
+
+    public function attempts(): HasMany
+    {
+        return $this->hasMany(ExamAttempt::class);
+    }
+
+    public function examTargets(): HasMany
+    {
+        return $this->hasMany(ExamStudentTarget::class);
+    }
+
+    public function counselingRequests(): HasMany
+    {
+        return $this->hasMany(CounselingRequest::class);
+    }
+
+    public function pointEvents(): HasMany
+    {
+        return $this->hasMany(PointEvent::class);
+    }
+
+    public function studentBadges(): HasMany
+    {
+        return $this->hasMany(StudentBadge::class);
+    }
+
+    public function badges(): BelongsToMany
+    {
+        return $this->belongsToMany(Badge::class, 'student_badges')
+            ->withPivot('awarded_at')
+            ->withTimestamps();
     }
 
     public function getNameAttribute(): string

@@ -2,13 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\Auditable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Schema;
 
 class SystemSetting extends Model
 {
-    use HasUuids;
+    use Auditable, HasUuids;
 
     protected $fillable = [
         'key',

@@ -43,10 +43,6 @@ const openPrint = (student) => {
     activeStudent.value = student;
     showPrintModal.value = true;
 };
-
-const printDoc = () => {
-    window.print();
-};
 </script>
 
 <template>
@@ -179,7 +175,9 @@ const printDoc = () => {
 
                 <div class="flex items-center justify-end gap-2 pt-3 border-t border-line print:hidden">
                     <AppButton size="sm" variant="ghost" @click="showPrintModal = false">Tutup</AppButton>
-                    <AppButton size="sm" variant="primary" @click="printDoc">Cetak Raport</AppButton>
+                    <a :href="route('guru.raport.pdf', { student: activeStudent.id, semester: selectedSemester })" target="_blank">
+                        <AppButton size="sm" variant="primary">📥 Unduh e-Raport (PDF)</AppButton>
+                    </a>
                 </div>
             </div>
         </Modal>

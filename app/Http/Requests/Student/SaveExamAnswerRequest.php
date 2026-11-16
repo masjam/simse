@@ -19,6 +19,10 @@ class SaveExamAnswerRequest extends FormRequest
         return [
             'question_id' => ['required', 'uuid', 'exists:questions,id'],
             'option_id' => ['nullable', 'uuid', 'exists:options,id'],
+            'option_ids' => ['nullable', 'array'],
+            'option_ids.*' => ['nullable', 'uuid'],
+            'pairs' => ['nullable', 'array'],
+            'blanks' => ['nullable', 'array'],
             'text_answer' => ['nullable', 'string', 'max:5000'],
         ];
     }

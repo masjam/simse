@@ -45,6 +45,7 @@ class SystemSettingController extends Controller
                 'school_latitude' => (string) SystemSetting::getValue('school_latitude', '-7.9664'),
                 'school_longitude' => (string) SystemSetting::getValue('school_longitude', '110.6035'),
                 'school_radius_meters' => (string) SystemSetting::getValue('school_radius_meters', '150'),
+                'gamification_enabled' => (string) SystemSetting::getValue('gamification_enabled', '1'),
             ],
             'modules' => $modules,
         ]);

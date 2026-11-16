@@ -36,7 +36,6 @@ function getContrastRatio(hex1, hex2) {
 
 function parseTokens(css) {
     const themeBlocks = {};
-    // Match block: selector { body }
     const blockRegex = /([^{]+)\{([^}]+)\}/g;
     let match;
     while ((match = blockRegex.exec(css)) !== null) {
@@ -51,14 +50,17 @@ function parseTokens(css) {
             const key = clean.substring(0, colonIdx).trim();
             const val = clean.substring(colonIdx + 1).trim();
             if (key.startsWith('--') && val.startsWith('#')) {
-                vars[key] = val.split(' ')[0]; // in case of extra rules
+                vars[key] = val.split(' ')[0];
             }
         }
 
         const themes = [];
-        if (selector.includes('madinah-gelap') || selector.includes('uji-gelap')) {
-            themes.push('madinah-gelap', 'uji-gelap');
-        } else if (selector.includes('madinah') || selector.includes(':root')) {
+        const themeMatches = [...selector.matchAll(/\[data-theme=["']?([^"'\]]+)["']?\]/g)];
+        for (const m of themeMatches) {
+            themes.push(m[1]);
+        }
+
+        if (selector.includes(':root') && !themes.includes('madinah')) {
             themes.push('madinah');
         }
 
@@ -69,14 +71,24 @@ function parseTokens(css) {
     return themeBlocks;
 }
 
-const tokensFile = path.resolve(__dirname, '../resources/css/tokens.css');
-if (!fs.existsSync(tokensFile)) {
-    console.error(`Tokens file not found at ${tokensFile}`);
-    process.exit(1);
+const resourcesDir = path.resolve(__dirname, '../resources/css');
+const tokensFile = path.resolve(resourcesDir, 'tokens.css');
+const themesDir = path.resolve(resourcesDir, 'themes');
+
+let combinedCss = '';
+if (fs.existsSync(tokensFile)) {
+    combinedCss += fs.readFileSync(tokensFile, 'utf8') + '\n';
 }
 
-const css = fs.readFileSync(tokensFile, 'utf8');
-const themes = parseTokens(css);
+if (fs.existsSync(themesDir)) {
+    for (const f of fs.readdirSync(themesDir)) {
+        if (f.endsWith('.css')) {
+            combinedCss += fs.readFileSync(path.resolve(themesDir, f), 'utf8') + '\n';
+        }
+    }
+}
+
+const themes = parseTokens(combinedCss);
 
 const pairsToCheck = [
     { label: 'ink / surface (text)', fg: '--ink', bg: '--surface', min: 4.5 },
@@ -90,6 +102,25 @@ const pairsToCheck = [
 
 let failed = false;
 console.log('--- Checking Design Token Contrast Ratios (WCAG AA) ---');
+
+const expectedThemes = [
+    'madinah',
+    'taman-belajar',
+    'kertas-tinta',
+    'ledger-tegas',
+    'senja-kaca',
+    'pasar-kantin',
+    'fokus-ujian',
+    'madinah-gelap',
+    'uji-gelap'
+];
+
+for (const exp of expectedThemes) {
+    if (!themes[exp]) {
+        console.error(`  FAIL: Expected theme [${exp}] is missing!`);
+        failed = true;
+    }
+}
 
 for (const [themeName, tokens] of Object.entries(themes)) {
     console.log(`\nTheme: [${themeName}]`);
@@ -116,9 +147,9 @@ for (const [themeName, tokens] of Object.entries(themes)) {
 }
 
 if (failed) {
-    console.error('\nContrast checks failed! Fix token values in resources/css/tokens.css');
+    console.error('\nContrast checks failed! Fix token values in resources/css/themes/ or tokens.css');
     process.exit(1);
 } else {
-    console.log('\nAll contrast checks passed successfully!');
+    console.log(`\nAll ${Object.keys(themes).length} themes passed contrast checks successfully!`);
     process.exit(0);
 }

@@ -1,0 +1,76 @@
+/**
+ * SIMSE Theme: Fokus Ujian
+ * Suasana: Tenang, bebas distraksi, ramah mata (anti lelah)
+ * Default untuk: Layar Ujian CBT Siswa & Kuis Online
+ */
+
+[data-theme="fokus-ujian"] {
+    /* Brand Scale: Netral & Teal Tenang */
+    --brand-50: #F4F4F5;
+    --brand-100: #E4E4E7;
+    --brand-200: #D4D4D8;
+    --brand-300: #A1A1AA;
+    --brand-400: #71717A;
+    --brand-500: #52525B;
+    --brand-600: #0F766E;
+    --brand-700: #115E59;
+    --brand-800: #134E4A;
+    --brand-900: #18181B;
+    --brand-fg: #FFFFFF;
+
+    /* Accent Scale: Teal Elegan */
+    --accent-50: #F0FDFA;
+    --accent-100: #CCFBF1;
+    --accent-200: #99F6E4;
+    --accent-300: #5EEAD4;
+    --accent-400: #2DD4BF;
+    --accent-500: #0F766E;
+    --accent-600: #115E59;
+    --accent-700: #134E4A;
+    --accent-800: #042F2E;
+    --accent-900: #021C1B;
+    --accent-fg: #FFFFFF;
+
+    /* Surfaces: Kertas Sepia Lembut Anti Radiasi */
+    --surface: #F7F5F0;
+    --surface-raised: #EFECE4;
+    --surface-sunken: #E5E0D5;
+
+    /* Typography / Ink: Tinta Hitam Tajam Mudah Dibaca */
+    --ink: #18181B;
+    --ink-muted: #52525B;
+
+    /* Borders & Focus: Garis Minimalis */
+    --line: #D4D4D8;
+    --focus: #0F766E;
+
+    /* Semantic Status (WCAG AA >= 4.5:1) */
+    --success-bg: #ECFDF5;
+    --success-fg: #065F46;
+    --success-line: #A7F3D0;
+
+    --warning-bg: #FFFBEB;
+    --warning-fg: #92400E;
+    --warning-line: #FDE68A;
+
+    --danger-bg: #FEF2F2;
+    --danger-fg: #991B1B;
+    --danger-line: #FECACA;
+
+    --info-bg: #F4F4F5;
+    --info-fg: #27272A;
+    --info-line: #D4D4D8;
+
+    /* Shapes & Elevation: Sederhana Tanpa Distraksi */
+    --radius-card: 0.5rem;
+    --radius-control: 0.375rem;
+    --shadow-card: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
+    --shadow-pop: 0 4px 6px -1px rgba(0, 0, 0, 0.08);
+
+    /* Typography families & density */
+    --font-display: 'Figtree', system-ui, -apple-system, sans-serif;
+    --font-body: 'Figtree', system-ui, -apple-system, sans-serif;
+    --font-numeric: 'Figtree', monospace;
+    --density: 1;
+}
+

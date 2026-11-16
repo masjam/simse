@@ -76,6 +76,18 @@ class AuthenticatedSessionController extends Controller
             }
         }
 
+        // Tantangan 2FA untuk user yang telah mengaktifkan Two Factor Authentication
+        if ($user->hasEnabledTwoFactor()) {
+            $request->session()->put([
+                'login.id' => $user->id,
+                'login.remember' => $request->boolean('remember'),
+                'login.selected_role' => $selectedRole,
+            ]);
+            Auth::guard('web')->logout();
+
+            return redirect()->route('two-factor.login');
+        }
+
         if ($user->hasRole('Super Admin')) {
             return redirect()->intended(route('admin.dashboard', absolute: false));
         } elseif ($user->hasAnyRole(['Guru Pengajar', 'Guru BK'])) {

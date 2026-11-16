@@ -34,10 +34,6 @@ const raportColumns = [
     { key: 'predikat', label: 'Predikat', class: 'text-center' },
     { key: 'notes', label: 'Catatan Capaian' },
 ];
-
-const printRaport = () => {
-    window.print();
-};
 </script>
 
 <template>
@@ -58,13 +54,14 @@ const printRaport = () => {
                     <Tabs v-model="activeTab" :tabs="tabs" variant="pills" />
                 </div>
 
-                <AppButton
-                    size="sm"
-                    variant="primary"
-                    @click="printRaport"
-                >
-                    Cetak Lembar Nilai
-                </AppButton>
+                <a v-if="student?.id" :href="route('siswa.raport.pdf', { student: student.id })" target="_blank">
+                    <AppButton
+                        size="sm"
+                        variant="primary"
+                    >
+                        📥 Unduh e-Raport (PDF)
+                    </AppButton>
+                </a>
             </div>
 
             <!-- Kop Surat Khusus Cetak -->

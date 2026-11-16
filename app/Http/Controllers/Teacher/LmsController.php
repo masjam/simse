@@ -9,6 +9,7 @@ use App\Models\StudentClass;
 use App\Models\Subject;
 use App\Models\Submission;
 use App\Models\Teacher;
+use App\Services\Gamification\PointService;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -249,6 +250,15 @@ class LmsController extends BaseTeacherController
             ],
             ['score' => $validated['score']]
         );
+
+        if ((float) $validated['score'] >= 90 && $submission->student) {
+            app(PointService::class)->award(
+                $submission->student,
+                'high_score',
+                $submission,
+                "Apresiasi nilai sempurna (skor {$validated['score']}) pada tugas"
+            );
+        }
 
         return redirect()->back()->with('success', 'Nilai dan feedback tugas berhasil disimpan!');
     }

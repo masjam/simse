@@ -11,9 +11,10 @@ defineProps({
     isFullscreen: { type: Boolean, default: false },
     submitting: { type: Boolean, default: false },
     fontSize: { type: String, default: 'md' }, // 'sm' | 'md' | 'lg'
+    childMode: { type: Boolean, default: false },
 });
 
-const emit = defineEmits(['toggle-fullscreen', 'submit-exam', 'change-font-size']);
+const emit = defineEmits(['toggle-fullscreen', 'submit-exam', 'change-font-size', 'toggle-child-mode']);
 </script>
 
 <template>
@@ -65,6 +66,17 @@ const emit = defineEmits(['toggle-fullscreen', 'submit-exam', 'change-font-size'
                     A+
                 </AppButton>
             </div>
+
+            <!-- Child Mode Toggle -->
+            <AppButton
+                size="sm"
+                :variant="childMode ? 'primary' : 'secondary'"
+                class="!px-2.5 !py-0.5 text-xs font-bold"
+                :title="childMode ? 'Nonaktifkan Mode Anak' : 'Aktifkan Mode Anak'"
+                @click="emit('toggle-child-mode')"
+            >
+                {{ childMode ? '👶 Mode Anak: ON' : '👶 Mode Anak' }}
+            </AppButton>
 
             <!-- Violation Badge -->
             <span

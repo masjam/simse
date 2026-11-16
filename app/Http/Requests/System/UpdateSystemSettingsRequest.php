@@ -25,6 +25,7 @@ class UpdateSystemSettingsRequest extends FormRequest
             'school_latitude' => ['nullable', 'numeric', 'between:-90,90'],
             'school_longitude' => ['nullable', 'numeric', 'between:-180,180'],
             'school_radius_meters' => ['nullable', 'integer', 'min:10', 'max:5000'],
+            'gamification_enabled' => ['nullable', 'string', 'in:0,1'],
         ];
     }
 

@@ -10,6 +10,8 @@ import ToastHost from '@/Components/ui/ToastHost.vue';
 import ConfirmDialog from '@/Components/ui/ConfirmDialog.vue';
 import Dropdown from '@/Components/ui/Dropdown.vue';
 import Avatar from '@/Components/ui/Avatar.vue';
+import ThemeSwitcher from '@/Components/ui/ThemeSwitcher.vue';
+import ThemeOrnament from '@/Components/ui/ThemeOrnament.vue';
 
 const props = defineProps({
     variant: {
@@ -126,6 +128,7 @@ function logout() {
                 </div>
 
                 <div class="flex items-center gap-2">
+                    <ThemeSwitcher compact />
                     <NotificationBell />
                     <button
                         type="button"
@@ -205,7 +208,7 @@ function logout() {
                 </nav>
 
                 <!-- Sidebar Footer Profile & Theme Toggle -->
-                <div class="p-3 border-t border-line bg-surface-raised/40 flex items-center justify-between">
+                <div class="p-3 border-t border-line bg-surface-raised/40 flex items-center justify-between gap-2">
                     <div class="flex items-center gap-2.5 min-w-0">
                         <Avatar :name="user?.name || primaryRole" size="sm" />
                         <div class="truncate">
@@ -213,21 +216,13 @@ function logout() {
                             <p class="text-[10px] text-ink-muted truncate">{{ primaryRole }}</p>
                         </div>
                     </div>
-                    <button
-                        type="button"
-                        class="p-2 rounded-control text-ink-muted hover:text-ink hover:bg-surface transition"
-                        title="Ganti Tema"
-                        aria-label="Ganti tema"
-                        @click="toggleDark"
-                    >
-                        <span v-if="currentTheme === 'madinah'">🌙</span>
-                        <span v-else>☀️</span>
-                    </button>
+                    <ThemeSwitcher />
                 </div>
             </aside>
 
             <!-- Main Workspace -->
-            <div class="flex-1 flex flex-col min-w-0">
+            <div class="flex-1 flex flex-col min-w-0 relative">
+                <ThemeOrnament position="top-right" />
                 <!-- Desktop Topbar -->
                 <header class="hidden lg:flex h-16 bg-surface border-b border-line px-8 items-center justify-between sticky top-0 z-20">
                     <div class="flex items-center gap-4">
@@ -312,6 +307,7 @@ function logout() {
                 </div>
 
                 <div class="flex items-center gap-2">
+                    <ThemeSwitcher compact />
                     <NotificationBell />
                     <button
                         type="button"

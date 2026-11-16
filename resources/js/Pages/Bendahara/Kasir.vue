@@ -165,6 +165,7 @@ const recentColumns = [
     { key: 'payment_method', label: 'Metode' },
     { key: 'status', label: 'Status', class: 'text-center' },
     { key: 'amount_paid', label: 'Nominal', class: 'text-right' },
+    { key: 'action', label: 'Kuitansi', class: 'text-center' },
 ];
 </script>
 
@@ -377,6 +378,14 @@ const recentColumns = [
                         </span>
                     </template>
 
+                    <template #cell(action)="{ item }">
+                        <a :href="route('bendahara.payments.pdf', { payment: item.id })" target="_blank">
+                            <AppButton size="sm" variant="secondary">
+                                📥 Kuitansi
+                            </AppButton>
+                        </a>
+                    </template>
+
                     <template #cell(receipt_url)="{ value }">
                         <a
                             v-if="value"
@@ -452,6 +461,14 @@ const recentColumns = [
                         <span class="font-black text-xs text-ink font-numeric">
                             <MoneyText :amount="value" />
                         </span>
+                    </template>
+
+                    <template #cell(action)="{ item }">
+                        <a :href="route('bendahara.payments.pdf', { payment: item.id })" target="_blank">
+                            <AppButton size="sm" variant="secondary">
+                                📥 Kuitansi
+                            </AppButton>
+                        </a>
                     </template>
                 </DataTable>
             </div>

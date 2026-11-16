@@ -14,6 +14,7 @@ use App\Models\Payment;
 use App\Models\Payroll;
 use App\Models\PayrollComponent;
 use App\Models\Student;
+use App\Models\WalletTransaction;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Response;
@@ -50,6 +51,11 @@ class BendaharaController extends Controller
     public function downloadReceipt(Payment $payment): StreamedResponse
     {
         return app(KasirController::class)->downloadReceipt($payment);
+    }
+
+    public function cancelPayment(Request $request, Payment $payment): RedirectResponse
+    {
+        return app(KasirController::class)->cancelPayment($request, $payment);
     }
 
     // ── SPP ────────────────────────────────────────────────────────────────
@@ -107,6 +113,11 @@ class BendaharaController extends Controller
     public function updateStudentRfid(Request $request, Student $student): RedirectResponse
     {
         return app(DompetController::class)->updateRfid($request, $student);
+    }
+
+    public function cancelWalletTransaction(Request $request, WalletTransaction $transaction): RedirectResponse
+    {
+        return app(DompetController::class)->cancelTransaction($request, $transaction);
     }
 
     // ── Payroll ────────────────────────────────────────────────────────────

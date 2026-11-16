@@ -50,7 +50,6 @@ const historyColumns = [
 ];
 
 const showPrintSlip = ref(false);
-const printDoc = () => window.print();
 </script>
 
 <template>
@@ -191,13 +190,14 @@ const printDoc = () => window.print();
                     <div class="flex justify-between items-center pb-4 border-b border-line">
                         <h3 class="font-bold text-ink text-sm">Pratinjau Cetak Slip Gaji Resmi</h3>
                         <div class="flex gap-2">
-                            <AppButton
-                                variant="primary"
-                                size="sm"
-                                @click="printDoc"
-                            >
-                                🖨️ Cetak / PDF
-                            </AppButton>
+                            <a v-if="slip.id" :href="route('bendahara.payroll.pdf', { payroll: slip.id })" target="_blank">
+                                <AppButton
+                                    variant="primary"
+                                    size="sm"
+                                >
+                                    📥 Unduh PDF Resmi
+                                </AppButton>
+                            </a>
                             <AppButton
                                 variant="secondary"
                                 size="sm"

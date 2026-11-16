@@ -19,8 +19,11 @@ use App\Policies\WalletTransactionPolicy;
 use App\Services\WhatsApp\FonnteWhatsAppGateway;
 use App\Services\WhatsApp\LogWhatsAppGateway;
 use App\Services\WhatsApp\WablasWhatsAppGateway;
+use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
 
@@ -63,6 +66,66 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Payment::class, PaymentPolicy::class);
         Gate::policy(BookLoan::class, BookLoanPolicy::class);
 
+        $this->configureRateLimiting();
+
         Vite::prefetch(concurrency: 3);
+    }
+
+    /**
+     * Konfigurasi Rate Limiting terpusat untuk keamanan sistem.
+     */
+    private function configureRateLimiting(): void
+    {
+        // 1. Login rate limit (5x per menit per email + IP)
+        RateLimiter::for('login', function (Request $request) {
+            $email = (string) $request->input('email', '');
+            $key = 'login|'.$request->ip().'|'.strtolower($email);
+
+            return Limit::perMinute(5)->by($key)->response(function () {
+                return back()->withErrors([
+                    'email' => 'Terlalu banyak percobaan masuk. Silakan tunggu 1 menit lagi demi keamanan akun Anda.',
+                ])->with('error', 'Terlalu banyak percobaan masuk. Silakan tunggu 1 menit lagi.');
+            });
+        });
+
+        // 2. Permintaan OTP Orang Tua (3x per 5 menit per nomor HP/IP)
+        RateLimiter::for('parent_otp', function (Request $request) {
+            $phone = (string) $request->input('phone_number', $request->input('phone', ''));
+            $key = 'otp|'.$request->ip().'|'.$phone;
+
+            return Limit::perMinutes(5, 3)->by($key)->response(function () {
+                return back()->withErrors([
+                    'phone_number' => 'Terlalu banyak permintaan kode OTP. Silakan tunggu 5 menit sebelum mencoba kembali.',
+                ]);
+            });
+        });
+
+        // 3. Verifikasi PIN Dompet & Kasir Kantin (3x per menit per IP/Wallet)
+        RateLimiter::for('pin_verify', function (Request $request) {
+            $key = 'pin_verify|'.$request->ip().'|'.($request->input('wallet_id', $request->user()?->id ?? 'guest'));
+
+            return Limit::perMinute(3)->by($key)->response(function () {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Terlalu banyak percobaan PIN keliru. Akses verifikasi ditangguhkan selama 1 menit.',
+                ], 429);
+            });
+        });
+
+        // 4. Verifikasi Dokumen Publik (30x per menit per IP)
+        RateLimiter::for('verification', function (Request $request) {
+            return Limit::perMinute(30)->by($request->ip())->response(function () {
+                abort(429, 'Terlalu banyak permintaan verifikasi dokumen.');
+            });
+        });
+
+        // 5. Unduhan Berkas Privat (60x per menit per User/IP)
+        RateLimiter::for('file_download', function (Request $request) {
+            $key = 'download|'.($request->user()?->id ?? $request->ip());
+
+            return Limit::perMinute(60)->by($key)->response(function () {
+                abort(429, 'Batas unduhan berkas terlampaui. Silakan tunggu sejenak.');
+            });
+        });
     }
 }

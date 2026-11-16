@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\SystemSetting;
 use App\Services\ModuleService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
@@ -58,12 +59,32 @@ class HandleInertiaRequests extends Middleware
             ];
         }
 
+        $routeName = $request->route()?->getName();
         $defaultTheme = config('theme.default', 'madinah');
-        if ($user) {
+
+        if ($routeName && ($routeTheme = config("theme.routes.{$routeName}"))) {
+            $defaultTheme = $routeTheme;
+        } elseif ($user) {
             $userRole = $user->getRoleNames()->first();
             $defaultTheme = config("theme.roles.{$userRole}", $defaultTheme);
+
+            // Siswa tingkat 1-3 otomatis menggunakan tema taman-belajar
+            if ($user->hasRole('Siswa')) {
+                $studentLevel = $user->student?->studentClass?->level;
+                if ($studentLevel && $studentLevel <= 3) {
+                    $defaultTheme = 'taman-belajar';
+                }
+            }
         }
-        $activeTheme = $request->cookie('simse_theme') ?: ($request->session()->get('theme') ?: $defaultTheme);
+
+        $rawSetting = SystemSetting::getValue('theme_allow_user_switch', config('theme.allow_user_switch', true));
+        $allowUserSwitch = filter_var($rawSetting, FILTER_VALIDATE_BOOLEAN);
+
+        if ($allowUserSwitch) {
+            $activeTheme = $request->cookie('simse_theme') ?: ($request->session()->get('theme') ?: $defaultTheme);
+        } else {
+            $activeTheme = $defaultTheme;
+        }
 
         return [
             ...parent::share($request),
@@ -76,6 +97,8 @@ class HandleInertiaRequests extends Middleware
             'activeModules' => app(ModuleService::class)->activeMap(),
             'notificationsSummary' => $notificationsSummary,
             'theme' => $activeTheme,
+            'allowThemeSwitch' => $allowUserSwitch,
+            'availableThemes' => config('theme.available', []),
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
                 'error' => fn () => $request->session()->get('error'),

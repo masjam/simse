@@ -31,6 +31,7 @@ const settingsForm = useForm({
     school_latitude: props.settings.school_latitude || '-7.9664',
     school_longitude: props.settings.school_longitude || '110.6035',
     school_radius_meters: props.settings.school_radius_meters || '150',
+    gamification_enabled: props.settings.gamification_enabled ?? '1',
 });
 
 const saveSettings = () => {
@@ -132,6 +133,22 @@ const toggleModule = (moduleId) => {
                                     max="5000"
                                     placeholder="150"
                                     class="font-numeric"
+                                />
+                            </FormField>
+                        </div>
+
+                        <div class="pt-2 border-t border-line">
+                            <FormField
+                                label="Modul Gamifikasi & Apresiasi Prestasi Siswa"
+                                :error="settingsForm.errors.gamification_enabled"
+                                caption="Mengatur keterlihatan fitur lencana, poin kemajuan, dan leaderboard di portal siswa & orang tua"
+                            >
+                                <AppSelect
+                                    v-model="settingsForm.gamification_enabled"
+                                    :options="[
+                                        { value: '1', label: 'Aktif (Tampilkan Lencana, Poin Prestasi, & Papan Peringkat)' },
+                                        { value: '0', label: 'Nonaktif (Sembunyikan Seluruh Fitur Gamifikasi)' }
+                                    ]"
                                 />
                             </FormField>
                         </div>

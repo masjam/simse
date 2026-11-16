@@ -233,4 +233,53 @@ class KasirController extends BaseBendaharaController
 
         return Storage::disk('private')->download($payment->receipt_photo);
     }
+
+    /**
+     * Cancel an existing payment with reversing transactions.
+     */
+    public function cancelPayment(Request $request, Payment $payment): RedirectResponse
+    {
+        $validated = $request->validate([
+            'reason' => ['required', 'string', 'max:500'],
+        ]);
+
+        if ($payment->status === 'Batal') {
+            return redirect()->back()->with('error', 'Pembayaran ini sudah berstatus Batal.');
+        }
+
+        DB::transaction(function () use ($payment, $validated) {
+            $lockedPayment = Payment::lockForUpdate()->findOrFail($payment->id);
+            $wasSuccessful = $lockedPayment->status === 'Berhasil';
+
+            $lockedPayment->update([
+                'status' => 'Batal',
+                'canceled_at' => now(),
+                'canceled_by' => Auth::id(),
+                'cancel_reason' => $validated['reason'],
+            ]);
+
+            // Jika pembayaran tadinya Berhasil, kembalikan tagihan dan saldo
+            if ($wasSuccessful && $lockedPayment->bill) {
+                $bill = $lockedPayment->bill;
+                $this->recalculateBillStatus($bill);
+
+                // Jika memakai Dompet Digital, kembalikan dana ke dompet siswa
+                if ($lockedPayment->payment_method === 'Dompet Digital' && $bill->student?->wallet) {
+                    $wallet = $bill->student->wallet;
+                    $wallet->increment('balance', $lockedPayment->amount_paid);
+
+                    WalletTransaction::create([
+                        'wallet_id' => $wallet->id,
+                        'type' => 'Setoran',
+                        'amount' => $lockedPayment->amount_paid,
+                        'reference_id' => 'REV-'.strtoupper(substr(str_replace('-', '', $lockedPayment->id), 0, 8)),
+                        'description' => "Pengembalian dana pembatalan pembayaran SPP (#{$lockedPayment->id})",
+                        'status' => 'Sukses',
+                    ]);
+                }
+            }
+        });
+
+        return redirect()->back()->with('success', 'Pembayaran berhasil dibatalkan dan status tagihan diperbarui.');
+    }
 }

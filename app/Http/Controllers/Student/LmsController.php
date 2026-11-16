@@ -6,6 +6,7 @@ use App\Http\Requests\Student\SubmitAssignmentRequest;
 use App\Models\Assignment;
 use App\Models\Lesson;
 use App\Models\Submission;
+use App\Services\Gamification\PointService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -16,6 +17,10 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class LmsController extends BaseStudentController
 {
+    public function __construct(
+        private readonly PointService $pointService,
+    ) {}
+
     public function index(Request $request): Response
     {
         $student = $this->resolveStudent();
@@ -87,43 +92,9 @@ class LmsController extends BaseStudentController
 
         $submissions = Submission::where('student_id', $student->id)->get();
         $totalSubmissions = $submissions->count();
-        $totalXp = (int) $submissions->sum('score');
-        $highScoreCount = $submissions->where('score', '>=', 90)->count();
 
-        $level = match (true) {
-            $totalXp >= 500 => ['level' => 5, 'title' => 'Cendekiawan Belia Mendunia', 'icon' => '👑'],
-            $totalXp >= 300 => ['level' => 4, 'title' => 'Pendekar Cilik Al Mujahidin', 'icon' => '🌟'],
-            $totalXp >= 150 => ['level' => 3, 'title' => 'Bintang Kelas', 'icon' => '⭐'],
-            $totalXp >= 50 => ['level' => 2, 'title' => 'Santri Rajin', 'icon' => '📚'],
-            default => ['level' => 1, 'title' => 'Penuntut Ilmu Pemula', 'icon' => '🌱'],
-        };
-
-        $badges = [
-            [
-                'name' => 'Langkah Pertama',
-                'desc' => 'Mengumpulkan tugas perdana',
-                'icon' => '🎯',
-                'unlocked' => $totalSubmissions >= 1,
-            ],
-            [
-                'name' => 'Kolektor Nilai A',
-                'desc' => 'Meraih nilai 90 ke atas',
-                'icon' => '💎',
-                'unlocked' => $highScoreCount >= 1,
-            ],
-            [
-                'name' => 'Santri Tekun',
-                'desc' => 'Menyelesaikan 3 tugas pembelajaran',
-                'icon' => '🔥',
-                'unlocked' => $totalSubmissions >= 3,
-            ],
-            [
-                'name' => 'Bintang Mujahidin',
-                'desc' => 'Mengumpulkan lebih dari 300 Poin XP',
-                'icon' => '🏆',
-                'unlocked' => $totalXp >= 300,
-            ],
-        ];
+        $profile = $this->pointService->getStudentProfile($student);
+        $leaderboard = $this->pointService->getLeaderboard($student->student_class_id);
 
         return Inertia::render('Student/LMS', [
             'student' => $this->formatStudentHeader($student),
@@ -131,10 +102,15 @@ class LmsController extends BaseStudentController
             'selectedSubjectId' => $selectedSubjectId,
             'lessons' => $lessons,
             'gamification' => [
-                'total_xp' => $totalXp,
+                'is_enabled' => $profile['is_enabled'],
+                'total_xp' => $profile['total_points'],
                 'total_submissions' => $totalSubmissions,
-                'level' => $level,
-                'badges' => $badges,
+                'level' => $profile['level'],
+                'badges' => $profile['badges'],
+                'unlocked_count' => $profile['unlocked_count'],
+                'total_badges' => $profile['total_badges'],
+                'recent_events' => $profile['recent_events'],
+                'leaderboard' => $leaderboard,
             ],
         ]);
     }
@@ -163,6 +139,8 @@ class LmsController extends BaseStudentController
 
         $filePath = $existing?->file_path;
 
+        $isFirstSubmission = ! $existing;
+
         if ($request->hasFile('file')) {
             if ($filePath && Storage::disk('local')->exists($filePath)) {
                 Storage::disk('local')->delete($filePath);
@@ -171,7 +149,7 @@ class LmsController extends BaseStudentController
             $filePath = $request->file('file')->store('submissions', 'local');
         }
 
-        Submission::updateOrCreate(
+        $submission = Submission::updateOrCreate(
             [
                 'assignment_id' => $assignment->id,
                 'student_id' => $student->id,
@@ -182,6 +160,15 @@ class LmsController extends BaseStudentController
                 'submitted_at' => now(),
             ]
         );
+
+        if ($isFirstSubmission) {
+            $this->pointService->award(
+                $student,
+                'assignment_submitted',
+                $submission,
+                "Mengumpulkan tugas: {$assignment->title}"
+            );
+        }
 
         return redirect()->back()->with('success', 'Tugas berhasil dikumpulkan ke guru.');
     }

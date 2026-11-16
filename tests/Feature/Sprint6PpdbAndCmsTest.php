@@ -234,7 +234,7 @@ class Sprint6PpdbAndCmsTest extends TestCase
         // 4. Delete Article
         $deleteResponse = $this->actingAs($this->admin)->delete(route('sistem.website.destroy', $post->id));
         $deleteResponse->assertRedirect(route('sistem.website'));
-        $this->assertDatabaseMissing('posts', ['id' => $post->id]);
+        $this->assertSoftDeleted('posts', ['id' => $post->id]);
     }
 
     public function test_landing_page_loads_published_articles(): void

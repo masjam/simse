@@ -7,6 +7,7 @@ use App\Models\Wallet;
 use App\Models\WalletTransaction;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -147,5 +148,42 @@ class DompetController extends BaseBendaharaController
             'success',
             $uid ? "Kartu RFID ({$uid}) berhasil ditautkan ke tabungan siswa." : 'Tautan kartu RFID siswa dilepas.'
         );
+    }
+
+    /**
+     * Cancel a wallet transaction and reverse wallet balance.
+     */
+    public function cancelTransaction(Request $request, WalletTransaction $transaction): RedirectResponse
+    {
+        $validated = $request->validate([
+            'reason' => ['required', 'string', 'max:500'],
+        ]);
+
+        if ($transaction->status === 'Batal') {
+            return redirect()->back()->with('error', 'Mutasi ini sudah berstatus Batal.');
+        }
+
+        DB::transaction(function () use ($transaction, $validated) {
+            $lockedTx = WalletTransaction::lockForUpdate()->findOrFail($transaction->id);
+            $wasSuccessful = $lockedTx->status === 'Sukses';
+
+            $lockedTx->update([
+                'status' => 'Batal',
+                'canceled_at' => now(),
+                'canceled_by' => Auth::id(),
+                'cancel_reason' => $validated['reason'],
+            ]);
+
+            if ($wasSuccessful && $lockedTx->wallet) {
+                $wallet = $lockedTx->wallet;
+                if ($lockedTx->type === 'Setoran') {
+                    $wallet->decrement('balance', $lockedTx->amount);
+                } else {
+                    $wallet->increment('balance', $lockedTx->amount);
+                }
+            }
+        });
+
+        return redirect()->back()->with('success', 'Mutasi transaksi berhasil dibatalkan dan saldo dompet disesuaikan.');
     }
 }

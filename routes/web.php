@@ -1,27 +1,46 @@
 <?php
 
 use App\Http\Controllers\AchievementVerificationController;
+use App\Http\Controllers\Admin\AuditLogController;
+use App\Http\Controllers\Admin\BackupController;
 use App\Http\Controllers\Admin\ScheduleController;
 use App\Http\Controllers\Admin\StudentClassController;
 use App\Http\Controllers\Admin\StudentController;
 use App\Http\Controllers\Admin\SubjectController;
 use App\Http\Controllers\Admin\TeachingAssignmentController;
 use App\Http\Controllers\Admin\TingkatController;
+use App\Http\Controllers\Admin\TrashController;
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\Bendahara\DocumentController as BendaharaDocumentController;
+use App\Http\Controllers\Bendahara\KasbonController;
 use App\Http\Controllers\BendaharaController;
 use App\Http\Controllers\CanteenController;
 use App\Http\Controllers\CmsController;
 use App\Http\Controllers\Dev\DesignSystemController;
+use App\Http\Controllers\DocumentVerificationController;
 use App\Http\Controllers\KioskDeviceController;
 use App\Http\Controllers\KioskPresensiController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\Parent\DocumentController as ParentDocumentController;
+use App\Http\Controllers\Parent\NotificationPreferenceController as ParentNotificationPreferenceController;
 use App\Http\Controllers\ParentPortalController;
 use App\Http\Controllers\PpdbController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\StaffController;
+use App\Http\Controllers\Student\CbtController;
+use App\Http\Controllers\Student\CounselingRequestController as StudentCounselingRequestController;
+use App\Http\Controllers\Student\DocumentController as StudentDocumentController;
+use App\Http\Controllers\Student\KeuanganController as StudentKeuanganController;
+use App\Http\Controllers\Student\PerpustakaanController;
+use App\Http\Controllers\Student\PrestasiController as StudentPrestasiController;
 use App\Http\Controllers\StudentCanteenController;
 use App\Http\Controllers\StudentPortalController;
 use App\Http\Controllers\SystemSettingController;
+use App\Http\Controllers\Teacher\CbtController as TeacherCbtController;
+use App\Http\Controllers\Teacher\CbtGradingController;
+use App\Http\Controllers\Teacher\CbtMonitorController;
+use App\Http\Controllers\Teacher\CbtReportController;
+use App\Http\Controllers\Teacher\DocumentController as TeacherDocumentController;
 use App\Http\Controllers\TeacherController;
 use App\Models\Post;
 use App\Services\InstagramService;
@@ -73,6 +92,14 @@ Route::prefix('ppdb')->name('ppdb.')->group(function () {
     Route::get('/sukses', [PpdbController::class, 'success'])->name('success');
 });
 
+// Verifikasi Keaslian Dokumen Resmi Publik (Rate-limited)
+Route::get('/verifikasi/{token}', [DocumentVerificationController::class, 'show'])
+    ->middleware('throttle:verification')
+    ->name('verifikasi.show');
+
+// Halaman Luring PWA (Offline Fallback)
+Route::get('/offline', fn () => Inertia::render('Offline'))->name('offline');
+
 Route::middleware(['auth', 'verified'])->group(function () {
     // 0. Dashboard Utama
     Route::get('/dashboard', function () {
@@ -105,7 +132,24 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/ppdb', [PpdbController::class, 'index'])->name('ppdb.index');
         Route::post('/ppdb/{registration}/status', [PpdbController::class, 'updateStatus'])->name('ppdb.status');
         Route::get('/ppdb/{registration}/doc/{type}', [PpdbController::class, 'downloadDocument'])->name('ppdb.document');
+
+        // Log Audit, Tempat Sampah & Cadangan Sistem
+        Route::get('/audit', [AuditLogController::class, 'index'])->name('audit.index');
+        Route::get('/trash', [TrashController::class, 'index'])->name('trash.index');
+        Route::post('/trash/{type}/{id}/restore', [TrashController::class, 'restore'])->name('trash.restore');
+        Route::delete('/trash/{type}/{id}', [TrashController::class, 'forceDelete'])->name('trash.force');
+        Route::get('/backups', [BackupController::class, 'index'])->name('backups.index');
+        Route::post('/backups', [BackupController::class, 'create'])->name('backups.create');
+        Route::get('/backups/{filename}', [BackupController::class, 'download'])->name('backups.download');
+        Route::delete('/backups/{filename}', [BackupController::class, 'destroy'])->name('backups.destroy');
     });
+
+    // Dokumen PDF Terproteksi (Otorisasi di Controller: Bendahara, Admin, atau Pemilik/Pegawai/Siswa terkait)
+    Route::get('/bendahara/payments/{payment}/pdf', [BendaharaDocumentController::class, 'paymentReceipt'])->middleware('throttle:file_download')->name('bendahara.payments.pdf');
+    Route::get('/bendahara/payroll/{payroll}/pdf', [BendaharaDocumentController::class, 'payrollSlip'])->middleware('throttle:file_download')->name('bendahara.payroll.pdf');
+
+    // Berkas Media CBT Terproteksi
+    Route::get('/cbt/images/{path}', [CbtController::class, 'serveImage'])->name('cbt.image');
 
     // Portal Khusus Bendahara
     Route::middleware(['role:Bendahara|Super Admin'])->prefix('bendahara')->name('bendahara.')->group(function () {
@@ -117,6 +161,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::post('/kasir/pay', [BendaharaController::class, 'storePayment'])->name('kasir.pay');
             Route::post('/payments/{payment}/verify', [BendaharaController::class, 'verifyPayment'])->name('payments.verify');
             Route::get('/payments/{payment}/receipt', [BendaharaController::class, 'downloadReceipt'])->name('payments.receipt');
+            Route::post('/payments/{payment}/cancel', [BendaharaController::class, 'cancelPayment'])->name('payments.cancel');
 
             // Manajemen SPP & Pos Tagihan
             Route::get('/spp', [BendaharaController::class, 'spp'])->name('spp');
@@ -130,6 +175,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             // Tabungan & Dompet Digital Siswa
             Route::get('/dompet', [BendaharaController::class, 'dompet'])->name('dompet');
             Route::post('/dompet/transaction', [BendaharaController::class, 'storeWalletTransaction'])->name('dompet.transaction');
+            Route::post('/dompet/{transaction}/cancel', [BendaharaController::class, 'cancelWalletTransaction'])->name('dompet.cancel');
             Route::post('/dompet/{student}/pin', [BendaharaController::class, 'updateWalletPin'])->name('dompet.pin');
             Route::post('/dompet/{student}/rfid', [BendaharaController::class, 'updateStudentRfid'])->name('dompet.rfid');
         });
@@ -142,6 +188,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::delete('/payroll/components/{component}', [BendaharaController::class, 'destroyPayrollComponent'])->name('payroll.components.destroy');
             Route::patch('/payroll/{payroll}/status', [BendaharaController::class, 'updatePayrollStatus'])->name('payroll.status');
             Route::post('/payroll/submit-approval', [BendaharaController::class, 'submitPayrollApproval'])->name('payroll.submit-approval');
+
+            // Kasbon Pegawai
+            Route::get('/kasbon', [KasbonController::class, 'index'])->name('kasbon');
+            Route::post('/kasbon/{advance}/approve', [KasbonController::class, 'approve'])->name('kasbon.approve');
+            Route::post('/kasbon/{advance}/reject', [KasbonController::class, 'reject'])->name('kasbon.reject');
         });
 
         // Laporan e-Kantin
@@ -182,8 +233,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::post('/perpustakaan/kembali/{bookLoan}', [StaffController::class, 'returnBook'])->name('perpustakaan.return');
         });
 
-        // Slip Gaji Staf
-        Route::get('/gaji', [StaffController::class, 'gaji'])->middleware('module:payroll')->name('gaji');
+        // Slip Gaji & Kasbon Staf
+        Route::middleware('module:payroll')->group(function () {
+            Route::get('/gaji', [StaffController::class, 'gaji'])->name('gaji');
+            Route::get('/kasbon', [App\Http\Controllers\Staff\KasbonController::class, 'index'])->name('kasbon');
+            Route::post('/kasbon', [App\Http\Controllers\Staff\KasbonController::class, 'store'])->name('kasbon.store');
+        });
     });
 
     // Portal Khusus Guru (Hanya Guru & Admin)
@@ -203,6 +258,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/nilai/export', [TeacherController::class, 'exportNilai'])->name('nilai.export');
         Route::post('/nilai/import', [TeacherController::class, 'importNilai'])->name('nilai.import');
         Route::get('/raport', [TeacherController::class, 'raport'])->name('raport');
+        Route::get('/raport/{student}/pdf', [TeacherDocumentController::class, 'raport'])->name('raport.pdf');
 
         // LMS & Tugas
         Route::middleware('module:lms')->group(function () {
@@ -219,12 +275,31 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::post('/tugas/{submission}/grade', [TeacherController::class, 'gradeSubmission'])->name('tugas.grade');
         });
 
-        // CBT & Bank Soal
+        // CBT & Bank Soal Lanjutan
         Route::middleware('module:cbt')->group(function () {
-            Route::get('/cbt', [TeacherController::class, 'cbt'])->name('cbt');
-            Route::post('/cbt/exam', [TeacherController::class, 'storeExam'])->name('cbt.exam.store');
-            Route::post('/cbt/exam/{exam}/question', [TeacherController::class, 'storeQuestion'])->name('cbt.question.store');
-            Route::patch('/cbt/exam/{exam}/toggle', [TeacherController::class, 'toggleExam'])->name('cbt.exam.toggle');
+            Route::get('/cbt', [TeacherCbtController::class, 'index'])->name('cbt');
+            Route::post('/cbt/exam', [TeacherCbtController::class, 'storeExam'])->name('cbt.exam.store');
+            Route::post('/cbt/exam/{exam}/question', [TeacherCbtController::class, 'storeQuestion'])->name('cbt.question.store');
+            Route::put('/cbt/questions/{question}', [TeacherCbtController::class, 'updateQuestion'])->name('cbt.question.update');
+            Route::delete('/cbt/questions/{question}', [TeacherCbtController::class, 'destroyQuestion'])->name('cbt.question.destroy');
+            Route::post('/cbt/exam/{exam}/import', [TeacherCbtController::class, 'importQuestions'])->name('cbt.question.import');
+            Route::patch('/cbt/exam/{exam}/toggle', [TeacherCbtController::class, 'toggleExam'])->name('cbt.exam.toggle');
+
+            // Pengawasan Realtime (Monitor)
+            Route::get('/cbt/exam/{exam}/monitor', [CbtMonitorController::class, 'show'])->name('cbt.monitor');
+            Route::get('/cbt/exam/{exam}/monitor/poll', [CbtMonitorController::class, 'poll'])->name('cbt.monitor.poll');
+            Route::post('/cbt/attempts/{attempt}/extra-time', [CbtMonitorController::class, 'addExtraTime'])->name('cbt.monitor.extra-time');
+            Route::post('/cbt/attempts/{attempt}/reset-violations', [CbtMonitorController::class, 'resetViolations'])->name('cbt.monitor.reset-violations');
+            Route::post('/cbt/attempts/{attempt}/force-submit', [CbtMonitorController::class, 'forceSubmit'])->name('cbt.monitor.force-submit');
+
+            // Koreksi Esai Guru
+            Route::get('/cbt/exam/{exam}/grading', [CbtGradingController::class, 'index'])->name('cbt.grading');
+            Route::post('/cbt/attempts/{attempt}/grade-essay', [CbtGradingController::class, 'storeScore'])->name('cbt.grading.store');
+
+            // Laporan & Analisis Butir Soal
+            Route::get('/cbt/exam/{exam}/report', [CbtReportController::class, 'show'])->name('cbt.report');
+            Route::get('/cbt/exam/{exam}/report/excel', [CbtReportController::class, 'exportExcel'])->name('cbt.report.excel');
+            Route::get('/cbt/exam/{exam}/report/pdf', [CbtReportController::class, 'exportPdf'])->name('cbt.report.pdf');
         });
 
         // Bimbingan Konseling (BK)
@@ -232,11 +307,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::get('/bk', [TeacherController::class, 'bk'])->name('bk');
             Route::post('/bk/violation', [TeacherController::class, 'storeViolation'])->name('bk.violation.store');
             Route::post('/bk/counseling', [TeacherController::class, 'storeCounseling'])->name('bk.counseling.store');
+            Route::get('/bk/{violation}/sp-pdf', [TeacherDocumentController::class, 'suratPeringatan'])->name('bk.sp.pdf');
+            Route::get('/bk/{violation}/bap-pdf', [TeacherDocumentController::class, 'bap'])->name('bk.bap.pdf');
         });
 
-        // Perpustakaan & Payroll
+        // Perpustakaan, Payroll & Kasbon Guru
         Route::get('/perpustakaan', [TeacherController::class, 'perpustakaan'])->middleware('module:perpustakaan')->name('perpustakaan');
         Route::get('/payroll', [TeacherController::class, 'payroll'])->middleware('module:payroll')->name('payroll');
+        Route::get('/kasbon', [App\Http\Controllers\Teacher\KasbonController::class, 'index'])->middleware('module:payroll')->name('kasbon');
+        Route::post('/kasbon', [App\Http\Controllers\Teacher\KasbonController::class, 'store'])->middleware('module:payroll')->name('kasbon.store');
     });
 
     // Portal Khusus Siswa
@@ -245,6 +324,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/jadwal', [StudentPortalController::class, 'jadwal'])->name('jadwal');
         Route::get('/nilai', [StudentPortalController::class, 'nilai'])->name('nilai');
         Route::get('/presensi', [StudentPortalController::class, 'presensi'])->middleware('module:absensi')->name('presensi');
+        Route::get('/keuangan', [StudentKeuanganController::class, 'index'])->name('keuangan');
+        Route::get('/prestasi', [StudentPrestasiController::class, 'index'])->name('prestasi');
+        Route::post('/konseling', [StudentCounselingRequestController::class, 'store'])->name('konseling.store');
 
         // LMS, Materi Mingguan & Pengumpulan Tugas
         Route::middleware('module:lms')->group(function () {
@@ -266,6 +348,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         // KTS Digital Siswa
         Route::get('/kts', [StudentPortalController::class, 'kts'])->name('kts');
+        Route::get('/kts/pdf', [StudentDocumentController::class, 'kts'])->name('kts.pdf');
+        Route::get('/prestasi/{achievement}/pdf', [StudentDocumentController::class, 'achievementCertificate'])->name('prestasi.pdf');
+        Route::get('/raport/{student}/pdf', [TeacherDocumentController::class, 'raport'])->name('raport.pdf');
+
+        // Perpustakaan Siswa & e-Book Reader
+        Route::middleware('module:perpustakaan')->group(function () {
+            Route::get('/perpustakaan', [PerpustakaanController::class, 'index'])->name('perpustakaan');
+            Route::get('/perpustakaan/{book}/read', [PerpustakaanController::class, 'read'])->name('perpustakaan.read');
+        });
 
         // e-Kantin Digital Siswa
         Route::middleware('module:kantin')->group(function () {
@@ -282,6 +373,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/wallet-limit', [ParentPortalController::class, 'updateWalletDailyLimit'])->name('wallet.limit');
         Route::post('/prestasi', [ParentPortalController::class, 'storeAchievement'])->name('achievements.store');
         Route::get('/prestasi/{achievement}/certificate', [ParentPortalController::class, 'downloadAchievementCertificate'])->name('achievements.certificate');
+        Route::get('/raport/{student}/pdf', [ParentDocumentController::class, 'raport'])->middleware('throttle:file_download')->name('raport.pdf');
+        Route::get('/pembayaran/{payment}/pdf', [ParentDocumentController::class, 'pembayaran'])->middleware('throttle:file_download')->name('pembayaran.pdf');
+        Route::post('/preferensi-notifikasi', [ParentNotificationPreferenceController::class, 'update'])->name('notification-preferences.update');
     });
 
     // Verifikasi Prestasi Siswa (Guru BK, TU, Staf Sekolah, Bidang Lomba, Super Admin)

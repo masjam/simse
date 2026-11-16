@@ -1,0 +1,77 @@
+/**
+ * SIMSE Theme: Madinah (Standar)
+ * Suasana: Tenang, berwibawa, bernuansa Islami
+ * Default untuk: Landing, Super Admin, Guru
+ */
+
+:root,
+[data-theme="madinah"] {
+    /* Brand Scale: Islamic Emerald / Teal */
+    --brand-50: #F0FDFA;
+    --brand-100: #CCFBF1;
+    --brand-200: #99F6E4;
+    --brand-300: #5EEAD4;
+    --brand-400: #2DD4BF;
+    --brand-500: #14B8A6;
+    --brand-600: #0F6B5C;
+    --brand-700: #115E59;
+    --brand-800: #134E4A;
+    --brand-900: #042F2E;
+    --brand-fg: #FFFFFF;
+
+    /* Accent Scale: Al-Mujahidin Gold / Amber */
+    --accent-50: #FFFBEB;
+    --accent-100: #FEF3C7;
+    --accent-200: #FDE68A;
+    --accent-300: #FCD34D;
+    --accent-400: #FBBF24;
+    --accent-500: #C9A24B;
+    --accent-600: #B45309;
+    --accent-700: #92400E;
+    --accent-800: #78350F;
+    --accent-900: #451A03;
+    --accent-fg: #FFFFFF;
+
+    /* Surfaces */
+    --surface: #FBF9F4;
+    --surface-raised: #F3EFE6;
+    --surface-sunken: #EBE4D8;
+
+    /* Typography / Ink */
+    --ink: #12302B;
+    --ink-muted: #4A635E;
+
+    /* Borders & Focus */
+    --line: #E5DFC5;
+    --focus: #0F6B5C;
+
+    /* Semantic Status (WCAG AA >= 4.5:1) */
+    --success-bg: #ECFDF5;
+    --success-fg: #065F46;
+    --success-line: #A7F3D0;
+
+    --warning-bg: #FFFBEB;
+    --warning-fg: #92400E;
+    --warning-line: #FDE68A;
+
+    --danger-bg: #FEF2F2;
+    --danger-fg: #991B1B;
+    --danger-line: #FECACA;
+
+    --info-bg: #EFF6FF;
+    --info-fg: #1E40AF;
+    --info-line: #BFDBFE;
+
+    /* Shapes & Elevation */
+    --radius-card: 0.75rem;
+    --radius-control: 0.5rem;
+    --shadow-card: 0 1px 3px 0 rgba(0, 0, 0, 0.08), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
+    --shadow-pop: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.08);
+
+    /* Typography families & density */
+    --font-display: 'Fraunces', 'Figtree', system-ui, -apple-system, sans-serif;
+    --font-body: 'Figtree', system-ui, -apple-system, sans-serif;
+    --font-numeric: 'Figtree', monospace;
+    --density: 1;
+}
+

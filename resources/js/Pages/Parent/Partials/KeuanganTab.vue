@@ -184,11 +184,16 @@ const saveWalletLimit = () => {
                             {{ payment.payment_date }} &bull; Metode: {{ payment.payment_method }} &bull; Kasir: {{ payment.cashier_name }}
                         </p>
                     </div>
-                    <div class="flex items-center gap-3 self-start sm:self-auto">
+                    <div class="flex items-center gap-2 self-start sm:self-auto flex-wrap">
                         <span class="font-bold font-mono text-sm text-brand-600">
                             Rp {{ Number(payment.amount_paid).toLocaleString('id-ID') }}
                         </span>
                         <StatusBadge :status="payment.status" />
+                        <a :href="route('ortu.pembayaran.pdf', payment.id)" target="_blank">
+                            <AppButton size="sm" variant="ghost" class="!px-2 !py-0.5 text-xs text-brand-700">
+                                Kuitansi PDF
+                            </AppButton>
+                        </a>
                     </div>
                 </div>
             </div>

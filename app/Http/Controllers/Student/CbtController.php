@@ -9,14 +9,18 @@ use App\Models\ExamAttempt;
 use App\Models\ExamViolation;
 use App\Models\Option;
 use App\Models\Question;
+use App\Services\Exam\ExamGrader;
+use App\Services\Gamification\PointService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class CbtController extends BaseStudentController
 {
@@ -32,8 +36,14 @@ class CbtController extends BaseStudentController
             'attempts' => fn ($query) => $query->where('student_id', $student->id)->withCount('violations'),
         ])
             ->where(function ($query) use ($student): void {
-                $query->where('is_active', true)
-                    ->orWhereHas('attempts', fn ($q) => $q->where('student_id', $student->id));
+                $query->where(function ($q) use ($student) {
+                    $q->where('is_active', true);
+                    // Filter remedial: if remedial, student must be targeted
+                    $q->where(function ($sub) use ($student) {
+                        $sub->where('is_remedial', false)
+                            ->orWhereHas('targets', fn ($t) => $t->where('student_id', $student->id));
+                    });
+                })->orWhereHas('attempts', fn ($q) => $q->where('student_id', $student->id));
             })
             ->orderByDesc('start_time')
             ->get()
@@ -69,6 +79,8 @@ class CbtController extends BaseStudentController
                     'end_time' => $exam->end_time->format('d M Y, H:i'),
                     'duration_minutes' => $exam->duration_minutes,
                     'max_violations' => $exam->max_violations,
+                    'scoring_rule' => $exam->scoring_rule,
+                    'is_remedial' => $exam->is_remedial,
                     'questions_count' => $exam->questions->count(),
                     'status' => $status,
                     'can_enter' => $canEnter,
@@ -78,6 +90,7 @@ class CbtController extends BaseStudentController
                         'finished_at' => $attempt->finished_at?->format('d M Y, H:i'),
                         'score' => $attempt->score,
                         'is_forced_submit' => $attempt->is_forced_submit,
+                        'needs_manual_grading' => $attempt->needs_manual_grading,
                         'violations_count' => $attempt->violations_count ?? 0,
                     ] : null,
                 ];
@@ -94,6 +107,11 @@ class CbtController extends BaseStudentController
         $student = $this->resolveStudent();
         $now = Carbon::now();
 
+        // Verify remedial targeting
+        if ($exam->is_remedial && ! $exam->targets()->where('student_id', $student->id)->exists()) {
+            return redirect()->route('siswa.cbt')->with('error', 'Anda tidak terdaftar dalam paket ujian remedial ini.');
+        }
+
         $attempt = ExamAttempt::where('exam_id', $exam->id)
             ->where('student_id', $student->id)
             ->first();
@@ -107,9 +125,20 @@ class CbtController extends BaseStudentController
                 return redirect()->route('siswa.cbt')->with('error', 'Soal ujian belum tersedia.');
             }
 
+            // Generate deterministic seed and question order
+            $seed = crc32($student->id.'_'.$exam->id);
+            $questionIds = $exam->questions()->pluck('id')->all();
+
+            if ($exam->randomize_questions) {
+                mt_srand($seed);
+                shuffle($questionIds);
+            }
+
             $attempt = ExamAttempt::create([
                 'exam_id' => $exam->id,
                 'student_id' => $student->id,
+                'seed' => $seed,
+                'question_order' => $questionIds,
                 'answers' => [],
                 'started_at' => $now,
             ]);
@@ -120,7 +149,7 @@ class CbtController extends BaseStudentController
         if ($attempt->finished_at === null) {
             $deadline = $this->calculateAttemptDeadline($exam, $attempt);
             if ($now->greaterThanOrEqualTo($deadline)) {
-                $this->finalizeExamAttempt($exam, $attempt, true);
+                app(ExamGrader::class)->finalizeAttempt($attempt, true);
                 $attempt->refresh();
             }
         }
@@ -132,21 +161,60 @@ class CbtController extends BaseStudentController
             ? 0
             : max(0, (int) $now->diffInSeconds($this->calculateAttemptDeadline($exam, $attempt), false));
 
-        $questions = $exam->questions->map(function (Question $question): array {
-            return [
+        // Order questions according to attempt's question_order
+        $orderedQuestionIds = $attempt->question_order ?: $exam->questions->pluck('id')->all();
+        $questionsMap = $exam->questions->keyBy('id');
+
+        $questions = [];
+        $seed = $attempt->seed ?: crc32($student->id.'_'.$exam->id);
+
+        foreach ($orderedQuestionIds as $qId) {
+            $question = $questionsMap->get($qId);
+            if (! $question) {
+                continue;
+            }
+
+            // Prepare options (sanitize answers and shuffle if configured)
+            $optionsList = $question->options->map(fn (Option $option): array => [
+                'id' => $option->id,
+                'content' => $option->content,
+                'image_url' => $option->image_path ? route('cbt.image', ['path' => basename($option->image_path)]) : null,
+            ])->all();
+
+            if ($exam->randomize_options && in_array($question->type, ['Pilihan Ganda', 'Ganda Kompleks'], true)) {
+                mt_srand($seed + crc32($question->id));
+                shuffle($optionsList);
+            }
+
+            // For Menjodohkan: extract distinct available target pairs for dropdowns
+            $pairChoices = [];
+            if ($question->type === 'Menjodohkan') {
+                $rawPairs = $question->options->pluck('pair_match')->filter()->unique()->values()->all();
+                mt_srand($seed + 999);
+                shuffle($rawPairs);
+                $pairChoices = $rawPairs;
+            }
+
+            $questions[] = [
                 'id' => $question->id,
                 'type' => $question->type,
                 'content' => $question->content,
                 'marks' => $question->marks,
-                'options' => $question->options->map(fn (Option $option): array => [
-                    'id' => $option->id,
-                    'content' => $option->content,
-                ])->values(),
+                'image_url' => $question->image_path ? route('cbt.image', ['path' => basename($question->image_path)]) : null,
+                'metadata' => [
+                    'blanks_count' => count($question->metadata['blanks'] ?? ($question->type === 'Isian Rumpang' ? [0] : [])),
+                ],
+                'options' => $optionsList,
+                'pair_choices' => $pairChoices,
             ];
-        })->values();
+        }
+
+        // Student's class level (for mode anak detection: level 1-3)
+        $studentLevel = (int) ($student->studentClass?->level ?? 4);
 
         return Inertia::render('Student/CBTExam', [
             'student' => $this->formatStudentHeader($student),
+            'studentLevel' => $studentLevel,
             'exam' => [
                 'id' => $exam->id,
                 'title' => $exam->title,
@@ -169,6 +237,7 @@ class CbtController extends BaseStudentController
                 'violations_count' => $attempt->violations_count ?? 0,
             ],
             'remainingSeconds' => $remainingSeconds,
+            'serverNow' => $now->toIso8601String(),
             'questions' => $questions,
         ]);
     }
@@ -189,7 +258,7 @@ class CbtController extends BaseStudentController
 
         if ($attempt->finished_at !== null || $now->greaterThanOrEqualTo($deadline)) {
             if ($attempt->finished_at === null) {
-                $this->finalizeExamAttempt($exam, $attempt, true);
+                app(ExamGrader::class)->finalizeAttempt($attempt, true);
             }
 
             return response()->json([
@@ -210,23 +279,14 @@ class CbtController extends BaseStudentController
             ], 422);
         }
 
-        $optionId = $validated['option_id'] ?? null;
-        if ($optionId !== null) {
-            $validOption = Option::where('id', $optionId)
-                ->where('question_id', $question->id)
-                ->exists();
-
-            if (! $validOption) {
-                return response()->json([
-                    'saved' => false,
-                    'message' => 'Opsi jawaban tidak valid untuk soal ini.',
-                ], 422);
-            }
-        }
-
         $answers = $attempt->answers ?? [];
+
+        // Store flexible answer payload supporting all question types
         $answers[$question->id] = [
-            'option_id' => $optionId,
+            'option_id' => $validated['option_id'] ?? null,
+            'option_ids' => $validated['option_ids'] ?? null,
+            'pairs' => $validated['pairs'] ?? null,
+            'blanks' => $validated['blanks'] ?? null,
             'text_answer' => $validated['text_answer'] ?? null,
             'updated_at' => $now->toIso8601String(),
         ];
@@ -236,6 +296,7 @@ class CbtController extends BaseStudentController
         return response()->json([
             'saved' => true,
             'forced_submit' => false,
+            'server_now' => $now->toIso8601String(),
             'remaining_seconds' => max(0, (int) $now->diffInSeconds($deadline, false)),
         ]);
     }
@@ -272,7 +333,7 @@ class CbtController extends BaseStudentController
             $forcedSubmit = false;
 
             if ($violationsCount >= $exam->max_violations) {
-                $this->finalizeExamAttempt($exam, $lockedAttempt, true);
+                app(ExamGrader::class)->finalizeAttempt($lockedAttempt, true);
                 $forcedSubmit = true;
             }
 
@@ -299,7 +360,7 @@ class CbtController extends BaseStudentController
         $submittedAnswers = $request->input('answers', []);
         $isForced = $request->boolean('is_forced_submit', false);
 
-        DB::transaction(function () use ($attempt, $exam, $submittedAnswers, $isForced): void {
+        DB::transaction(function () use ($attempt, $exam, $submittedAnswers, $isForced, $student): void {
             $lockedAttempt = ExamAttempt::where('id', $attempt->id)->lockForUpdate()->firstOrFail();
 
             if ($lockedAttempt->finished_at !== null) {
@@ -317,6 +378,9 @@ class CbtController extends BaseStudentController
 
                     $merged[$questionId] = [
                         'option_id' => $answerPayload['option_id'] ?? null,
+                        'option_ids' => $answerPayload['option_ids'] ?? null,
+                        'pairs' => $answerPayload['pairs'] ?? null,
+                        'blanks' => $answerPayload['blanks'] ?? null,
                         'text_answer' => $answerPayload['text_answer'] ?? null,
                         'updated_at' => now()->toIso8601String(),
                     ];
@@ -328,54 +392,36 @@ class CbtController extends BaseStudentController
             $deadline = $this->calculateAttemptDeadline($exam, $lockedAttempt);
             $forceFlag = $isForced || Carbon::now()->greaterThanOrEqualTo($deadline);
 
-            $this->finalizeExamAttempt($exam, $lockedAttempt, $forceFlag);
+            app(ExamGrader::class)->finalizeAttempt($lockedAttempt, $forceFlag);
+            $lockedAttempt->refresh();
+
+            // Sprint 5B: Gamifikasi CBT
+            $pointService = app(PointService::class);
+            $pointService->award($student, 'cbt_completed', $lockedAttempt, "Menyelesaikan ujian CBT: {$exam->title}");
+            if ($lockedAttempt->score !== null && (float) $lockedAttempt->score >= 90) {
+                $pointService->award($student, 'cbt_high_score', $lockedAttempt, "Nilai istimewa CBT (skor {$lockedAttempt->score}): {$exam->title}");
+            }
         });
 
         return redirect()->route('siswa.cbt.start', $exam->id)->with('success', 'Ujian CBT telah dikumpulkan dan dinilai.');
     }
 
+    public function serveImage(string $path): BinaryFileResponse
+    {
+        $safePath = 'cbt_images/'.basename($path);
+        if (! Storage::disk('local')->exists($safePath)) {
+            abort(404, 'Gambar tidak ditemukan.');
+        }
+
+        return response()->file(Storage::disk('local')->path($safePath));
+    }
+
     private function calculateAttemptDeadline(Exam $exam, ExamAttempt $attempt): Carbon
     {
-        $durationEnd = Carbon::parse($attempt->started_at)->addMinutes($exam->duration_minutes);
+        $extra = $attempt->extra_time_minutes ?? 0;
+        $durationEnd = Carbon::parse($attempt->started_at)->addMinutes($exam->duration_minutes + $extra);
         $examEnd = Carbon::parse($exam->end_time);
 
         return $durationEnd->lt($examEnd) ? $durationEnd : $examEnd;
-    }
-
-    private function finalizeExamAttempt(Exam $exam, ExamAttempt $attempt, bool $isForcedSubmit = false): void
-    {
-        if ($attempt->finished_at !== null) {
-            return;
-        }
-
-        $exam->load('questions.options');
-        $answers = $attempt->answers ?? [];
-
-        $totalMarks = (int) $exam->questions->sum('marks');
-        $earnedMarks = 0;
-
-        foreach ($exam->questions as $question) {
-            if (! in_array($question->type, ['Pilihan Ganda', 'Benar Salah'], true)) {
-                continue;
-            }
-
-            $selectedOptionId = $answers[$question->id]['option_id'] ?? null;
-            if (! $selectedOptionId) {
-                continue;
-            }
-
-            $correctOption = $question->options->firstWhere('is_correct', true);
-            if ($correctOption && $correctOption->id === $selectedOptionId) {
-                $earnedMarks += (int) $question->marks;
-            }
-        }
-
-        $score = $totalMarks > 0 ? round(($earnedMarks / $totalMarks) * 100, 2) : 0.0;
-
-        $attempt->update([
-            'finished_at' => now(),
-            'is_forced_submit' => $isForcedSubmit || $attempt->is_forced_submit,
-            'score' => $score,
-        ]);
     }
 }

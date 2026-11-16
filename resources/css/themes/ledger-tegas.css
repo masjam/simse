@@ -1,0 +1,76 @@
+/**
+ * SIMSE Theme: Ledger Tegas
+ * Suasana: Tegas, cepat dibaca, presisi, serius
+ * Default untuk: Bendahara, Kasir Kas, Payroll
+ */
+
+[data-theme="ledger-tegas"] {
+    /* Brand Scale: Biru Akuntansi Tegas */
+    --brand-50: #EFF6FF;
+    --brand-100: #DBEAFE;
+    --brand-200: #BFDBFE;
+    --brand-300: #93C5FD;
+    --brand-400: #3B82F6;
+    --brand-500: #2563EB;
+    --brand-600: #1B3FD1;
+    --brand-700: #1D4ED8;
+    --brand-800: #1E40AF;
+    --brand-900: #1E3A8A;
+    --brand-fg: #FFFFFF;
+
+    /* Accent Scale: Kuning Emas Stabilo Pembukuan */
+    --accent-50: #FEFCE8;
+    --accent-100: #FEF9C3;
+    --accent-200: #FEF08A;
+    --accent-300: #FDE047;
+    --accent-400: #FACC15;
+    --accent-500: #CA8A04;
+    --accent-600: #A16207;
+    --accent-700: #854D0E;
+    --accent-800: #713F12;
+    --accent-900: #422006;
+    --accent-fg: #0A0A0A;
+
+    /* Surfaces: Putih Bersih Presisi */
+    --surface: #FFFFFF;
+    --surface-raised: #F4F4F5;
+    --surface-sunken: #E4E4E7;
+
+    /* Typography / Ink: Hitam Kontras Maksimal */
+    --ink: #0A0A0A;
+    --ink-muted: #525252;
+
+    /* Borders & Focus: Garis Batas Kuat & Jelas */
+    --line: #D4D4D8;
+    --focus: #1B3FD1;
+
+    /* Semantic Status (WCAG AA >= 4.5:1) */
+    --success-bg: #F0FDF4;
+    --success-fg: #15803D;
+    --success-line: #86EFAC;
+
+    --warning-bg: #FEFCE8;
+    --warning-fg: #A16207;
+    --warning-line: #FDE047;
+
+    --danger-bg: #FEF2F2;
+    --danger-fg: #B91C1C;
+    --danger-line: #FCA5A5;
+
+    --info-bg: #EFF6FF;
+    --info-fg: #1D4ED8;
+    --info-line: #93C5FD;
+
+    /* Shapes & Elevation: Blok Persegi Tegas */
+    --radius-card: 0.25rem;
+    --radius-control: 0.25rem;
+    --shadow-card: 0 1px 1px 0 rgba(0, 0, 0, 0.05);
+    --shadow-pop: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+
+    /* Typography families & density */
+    --font-display: 'Bricolage Grotesque', system-ui, sans-serif;
+    --font-body: 'Figtree', system-ui, -apple-system, sans-serif;
+    --font-numeric: 'IBM Plex Mono', 'Courier New', monospace;
+    --density: 0.9;
+}
+

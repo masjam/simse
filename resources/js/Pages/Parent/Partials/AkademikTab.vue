@@ -52,6 +52,17 @@ const raportColumns = [
 
         <!-- 1. e-Raport Capaian -->
         <div v-if="subTab === 'raport'" class="space-y-3">
+            <div class="flex items-center justify-between pb-1 flex-wrap gap-2">
+                <span class="text-xs font-bold uppercase tracking-wider text-ink-muted">
+                    Lembar Capaian Kompetensi (e-Raport)
+                </span>
+                <a :href="route('ortu.raport.pdf', activeChild.id)" target="_blank">
+                    <AppButton size="sm" variant="secondary" class="!px-2.5 !py-1 text-xs">
+                        Unduh Raport PDF Resmi
+                    </AppButton>
+                </a>
+            </div>
+
             <DataTable
                 :columns="raportColumns"
                 :items="akademik.raportSubjects || []"
@@ -154,7 +165,43 @@ const raportColumns = [
         </div>
 
         <!-- 5. Prestasi Ananda -->
-        <div v-else-if="subTab === 'prestasi'" class="space-y-3">
+        <div v-else-if="subTab === 'prestasi'" class="space-y-4">
+            <!-- Apresiasi Gamifikasi Ananda (Poin & Lencana) -->
+            <div
+                v-if="akademik.gamification?.is_enabled"
+                class="bg-surface rounded-card border border-brand-300 p-4 shadow-card"
+            >
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 rounded-control bg-brand-50 border border-brand-200 flex items-center justify-center text-2xl shrink-0">
+                            {{ akademik.gamification.level?.icon || '🌟' }}
+                        </div>
+                        <div>
+                            <span class="px-2 py-0.5 rounded-full bg-brand-600 text-brand-fg text-[10px] font-extrabold uppercase">
+                                Level {{ akademik.gamification.level?.level || 1 }}
+                            </span>
+                            <h4 class="text-sm font-bold text-ink mt-0.5">{{ akademik.gamification.level?.title }}</h4>
+                            <p class="text-xs text-ink-muted">
+                                Total Perolehan: <strong class="text-brand-700 font-bold font-mono">{{ akademik.gamification.total_points }} Poin</strong> &bull; {{ akademik.gamification.unlocked_count }} Lencana Diraih
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Mini badges list -->
+                    <div class="flex flex-wrap items-center gap-1.5">
+                        <div
+                            v-for="b in akademik.gamification.badges?.filter(b => b.is_unlocked)"
+                            :key="b.id"
+                            class="px-2 py-1 rounded-control bg-brand-50 border border-brand-200 text-brand-800 text-xs flex items-center gap-1 font-bold"
+                            :title="b.description"
+                        >
+                            <span>{{ b.icon }}</span>
+                            <span class="text-[11px]">{{ b.name }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="flex items-center justify-between">
                 <div>
                     <h4 class="text-sm font-bold text-ink">Catatan Prestasi & Lomba</h4>

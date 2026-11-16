@@ -53,10 +53,17 @@ Dokumen ini menjadi acuan utama pengembangan sistem informasi manajemen SD Muham
 
 ### 3.3 Sistem Token & Desain Semantik
 - Semua token desain didefinisikan sebagai CSS variable di `resources/css/tokens.css` dan dipetakan di `tailwind.config.js`.
-- Atribut `data-theme` pada tag `<html>` menentukan tema aktif:
-  - `madinah`: Hijau-teal teduh khas Al-Mujahidin + aksen emas.
+- Atribut `data-theme` pada tag `<html>` menentukan paket tema aktif (9 paket tema terverifikasi WCAG AA):
+  - `madinah`: Hijau-teal teduh berwibawa khas Al-Mujahidin + aksen emas (Super Admin, Operator, Guru).
+  - `taman-belajar`: Ceria dan hangat ramah anak seperti buku cerita, radius 24px (Siswa Kelas 1-3).
+  - `kertas-tinta`: Editorial klasik buku catatan dan perpustakaan (Guru e-Raport, Perpustakaan).
+  - `ledger-tegas`: Presisi akuntansi garis tegas dan blok angka mono (Bendahara, Kasir, Payroll).
+  - `senja-kaca`: Gradien lavender-persik lembut dan hangat (Orang Tua / Wali Siswa).
+  - `pasar-kantin`: Hangat dan menggugah selera selayaknya papan menu (Stand Kantin, POS RFID).
+  - `fokus-ujian`: Minimalis tenang tanpa distraksi untuk ujian CBT ramah mata.
   - `madinah-gelap`: Mode gelap nyaman untuk malam hari.
   - `uji-gelap`: Tema kontras tinggi untuk verifikasi design system.
+- Ornamen visual dimuat eksklusif via komponen `<ThemeOrnament>` (SVG inline beropasitas rendah, aria-hidden).
 - Nilai kontras diverifikasi otomatis oleh `scripts/check-contrast.mjs` (WCAG AA: teks >= 4.5:1, UI >= 3:1).
 - **Larangan Keras**: Dilarang menggunakan warna mentah (`bg-blue-600`, `text-slate-900`), nilai hex/rgb/hsl, atau `style=""` pada komponen halaman. Gunakan token semantik:
   - Permukaan: `bg-surface`, `bg-surface-raised`, `bg-surface-sunken`
