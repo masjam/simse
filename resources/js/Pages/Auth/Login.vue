@@ -153,7 +153,7 @@ const selectRole = (roleId) => {
                 </Link>
                 <div class="flex items-center gap-2 text-xs text-ink-muted">
                     <span class="hidden sm:inline">Pendaftaran Siswa Baru:</span>
-                    <Link :href="route('ppdb.register')">
+                    <Link :href="route('ppdb.form')">
                         <AppButton variant="outline" size="sm">
                             Daftar PPDB Online →
                         </AppButton>

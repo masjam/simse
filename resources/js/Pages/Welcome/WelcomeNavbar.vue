@@ -35,7 +35,7 @@ const mobileMenuOpen = ref(false);
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-20">
                 <!-- Brand Logo -->
-                <Link :href="route('welcome')" class="flex items-center gap-3 group">
+                <Link :href="route('home')" class="flex items-center gap-3 group">
                     <div class="w-11 h-11 rounded-control bg-brand-600 text-brand-fg flex items-center justify-center font-bold shadow-card">
                         <svg class="w-6 h-6 text-accent-400" fill="currentColor" viewBox="0 0 24 24">
                             <path d="M12 2l1.5 3.5L17 4l-1 3.5 3.5 1-2.5 2.5 3 2.5-3.5 1 1 3.5-3.5-1-1.5 3.5-1.5-3.5L5 20l1-3.5-3.5-1 2.5-2.5-3-2.5 3.5-1-1-3.5 3.5 1L12 2z"/>

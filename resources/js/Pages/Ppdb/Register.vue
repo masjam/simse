@@ -129,7 +129,7 @@ const submit = () => {
             <div class="max-w-3xl mx-auto space-y-6">
                 <!-- Header -->
                 <div class="text-center space-y-2">
-                    <Link :href="route('welcome')" class="inline-flex items-center gap-1.5 text-brand-700 hover:text-brand-800 text-xs font-bold mb-2">
+                    <Link :href="route('home')" class="inline-flex items-center gap-1.5 text-brand-700 hover:text-brand-800 text-xs font-bold mb-2">
                         <span>← Kembali ke Beranda Utama</span>
                     </Link>
                     <h1 class="text-2xl sm:text-3xl font-extrabold text-ink">

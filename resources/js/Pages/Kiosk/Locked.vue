@@ -31,7 +31,7 @@ defineProps({
                     Hubungi Administrator ICT untuk mendaftarkan MAC Address PC ini pada menu Perangkat Kiosk.
                 </p>
                 <div class="pt-2">
-                    <Link :href="route('welcome')">
+                    <Link :href="route('home')">
                         <AppButton variant="secondary" size="sm">
                             Kembali ke Beranda
                         </AppButton>

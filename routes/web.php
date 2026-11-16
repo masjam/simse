@@ -85,6 +85,8 @@ Route::get('/', function (InstagramService $instagramService) {
     ]);
 })->name('home');
 
+Route::permanentRedirect('/welcome', '/')->name('welcome');
+
 // PPDB Pendaftaran Online Siswa Baru (Publik)
 Route::prefix('ppdb')->name('ppdb.')->group(function () {
     Route::get('/daftar', [PpdbController::class, 'form'])->name('form');
